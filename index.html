@@ -6,15 +6,22 @@
     <title>HOOKAH HELPER | Автоматизация кальянной станции</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --accent: #06d6a0;
-            --dark: #1e293b;
-            --light: #f8fafc;
-            --gray: #64748b;
+            --primary: #00d4ff;
+            --primary-dark: #0099cc;
+            --secondary: #7928ca;
+            --accent: #ff375f;
+            --dark: #0a0a0a;
+            --darker: #050505;
+            --light: #ffffff;
+            --gray: #8a8f98;
+            --gray-dark: #2a2a2a;
+            --gray-light: #1a1a1a;
+            --border: #333333;
         }
         
         * {
@@ -23,29 +30,38 @@
             box-sizing: border-box;
         }
         
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--dark);
-            background-color: var(--light);
-            overflow-x: hidden;
+        html {
+            scroll-behavior: smooth;
         }
         
-        /* Шапка */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--light);
+            background-color: var(--dark);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Шапка - минималистичная */
         .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
             color: white;
-            padding: 20px 0;
-            position: sticky;
+            padding: 18px 0;
+            position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .nav-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -54,48 +70,67 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.8rem;
+            gap: 12px;
+            font-size: 1.5rem;
             font-weight: 700;
             text-decoration: none;
             color: white;
+            transition: opacity 0.3s;
+        }
+        
+        .logo:hover {
+            opacity: 0.8;
         }
         
         .logo-icon {
-            background: white;
-            color: var(--primary);
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
         }
         
         .nav-links {
             display: flex;
-            gap: 30px;
+            gap: 32px;
         }
         
         .nav-links a {
-            color: white;
+            color: var(--gray);
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.95rem;
             transition: all 0.3s;
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 6px 0;
+            position: relative;
         }
         
         .nav-links a:hover {
-            background: rgba(255,255,255,0.1);
-            transform: translateY(-2px);
+            color: var(--light);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
         }
         
         .cta-button {
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: var(--dark);
-            padding: 12px 28px;
+            padding: 10px 24px;
             border-radius: 8px;
             font-weight: 600;
             text-decoration: none;
@@ -105,20 +140,23 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 0.95rem;
         }
         
         .cta-button:hover {
-            background: #05c190;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(6, 214, 160, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.25);
         }
         
-        /* Герой секция */
+        /* Герой секция - полностью переработана */
         .hero {
-            padding: 100px 20px;
-            background: linear-gradient(135deg, #f6f9ff 0%, #f0f4ff 100%);
+            padding: 160px 24px 100px;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
             position: relative;
             overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
         }
         
         .hero::before {
@@ -126,12 +164,9 @@
             position: absolute;
             top: 0;
             right: 0;
-            width: 50%;
+            width: 60%;
             height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'%3E%3Cpath fill='%236366f1' fill-opacity='0.03' d='M400,0C179.2,0,0,179.2,0,400s179.2,400,400,400s400-179.2,400-400S620.8,0,400,0z M400,700c-165.6,0-300-134.4-300-300S234.4,100,400,100s300,134.4,300,300S565.6,700,400,700z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-size: contain;
-            background-position: center right;
+            background: radial-gradient(circle at 70% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
         }
         
         .hero-container {
@@ -139,53 +174,118 @@
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 60px;
+            gap: 80px;
             align-items: center;
             position: relative;
             z-index: 1;
+        }
+        
+        .hero-content {
+            max-width: 600px;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
         }
         
         .hero-content h1 {
             font-size: 3.5rem;
             font-weight: 800;
             line-height: 1.1;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--light) 0%, var(--primary) 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
             color: transparent;
+            letter-spacing: -0.5px;
         }
         
         .hero-content p {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             color: var(--gray);
-            margin-bottom: 30px;
-            max-width: 90%;
+            margin-bottom: 32px;
+            line-height: 1.7;
+            font-weight: 300;
+        }
+        
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 48px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--light);
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary);
         }
         
         .hero-stats {
             display: flex;
-            gap: 30px;
-            margin-top: 40px;
+            gap: 40px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
         }
         
         .stat-item {
-            text-align: center;
+            text-align: left;
         }
         
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 2.25rem;
             font-weight: 700;
             color: var(--primary);
             line-height: 1;
+            margin-bottom: 4px;
         }
         
         .stat-label {
             font-size: 0.9rem;
             color: var(--gray);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-weight: 400;
         }
         
         .hero-visual {
@@ -195,37 +295,70 @@
         .bot-illustration {
             width: 100%;
             max-width: 500px;
-            height: auto;
+            height: 400px;
             border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
-            transform: perspective(1000px) rotateY(-10deg);
-            transition: transform 0.5s;
+            background: linear-gradient(135deg, var(--gray-light) 0%, var(--dark) 100%);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
         }
         
-        .bot-illustration:hover {
-            transform: perspective(1000px) rotateY(0deg);
+        .bot-illustration::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(0, 212, 255, 0.1) 50%, transparent 70%);
+            animation: shine 3s infinite;
+        }
+        
+        .message-bubble {
+            position: absolute;
+            background: var(--gray-light);
+            border-radius: 18px;
+            padding: 16px;
+            max-width: 70%;
+            border: 1px solid var(--border);
+        }
+        
+        .message-1 {
+            top: 20%;
+            left: 10%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .message-2 {
+            bottom: 30%;
+            right: 10%;
+            animation: float 6s ease-in-out infinite 1s;
         }
         
         /* Секция преимуществ */
         .features {
-            padding: 100px 20px;
-            background: white;
+            padding: 100px 24px;
+            background: var(--darker);
         }
         
         .section-title {
             text-align: center;
             font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 20px;
-            color: var(--dark);
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--light);
+            letter-spacing: -0.5px;
         }
         
         .section-subtitle {
             text-align: center;
             color: var(--gray);
-            max-width: 700px;
-            margin: 0 auto 60px;
+            max-width: 600px;
+            margin: 0 auto 64px;
             font-size: 1.1rem;
+            line-height: 1.6;
+            font-weight: 300;
         }
         
         .features-grid {
@@ -237,65 +370,73 @@
         }
         
         .feature-card {
-            background: var(--light);
+            background: var(--gray-light);
             border-radius: 16px;
-            padding: 30px;
+            padding: 32px;
             transition: all 0.3s;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             position: relative;
             overflow: hidden;
         }
         
         .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            transform: translateY(-8px);
             border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
         
         .feature-icon {
-            width: 60px;
-            height: 60px;
+            width: 56px;
+            height: 56px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            color: white;
+            margin-bottom: 24px;
+            color: var(--dark);
             font-size: 1.5rem;
         }
         
         .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            color: var(--dark);
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            color: var(--light);
+            font-weight: 600;
         }
         
         .feature-card p {
             color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
         }
         
         /* Секция "Как работает" */
         .how-it-works {
-            padding: 100px 20px;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 100px 24px;
+            background: var(--dark);
         }
         
         .steps-container {
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
             counter-reset: step-counter;
         }
         
         .step {
-            background: white;
-            padding: 40px 30px;
+            background: var(--gray-light);
+            padding: 40px 32px;
             border-radius: 16px;
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        
+        .step:hover {
+            border-color: var(--primary);
         }
         
         .step::before {
@@ -303,7 +444,7 @@
             content: counter(step-counter);
             position: absolute;
             top: -20px;
-            left: 30px;
+            left: 32px;
             width: 40px;
             height: 40px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -311,20 +452,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--dark);
             font-weight: 700;
             font-size: 1.2rem;
         }
         
         .step h3 {
-            margin-bottom: 15px;
+            margin-bottom: 16px;
             font-size: 1.3rem;
+            color: var(--light);
+            font-weight: 600;
+        }
+        
+        .step p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
         }
         
         /* Секция документов */
         .documents {
-            padding: 100px 20px;
-            background: white;
+            padding: 100px 24px;
+            background: var(--darker);
         }
         
         .documents-grid {
@@ -336,12 +485,15 @@
         }
         
         .document-card {
-            background: linear-gradient(135deg, var(--light) 0%, #f0f4ff 100%);
+            background: var(--gray-light);
             border-radius: 16px;
-            padding: 40px 30px;
+            padding: 40px 32px;
             text-align: center;
             transition: all 0.3s;
-            border: 2px solid transparent;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .document-card:hover {
@@ -352,37 +504,72 @@
         .doc-icon {
             font-size: 3rem;
             color: var(--primary);
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .document-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            color: var(--light);
+            font-weight: 600;
+        }
+        
+        .document-card p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            flex-grow: 1;
         }
         
         .doc-button {
-            margin-top: 20px;
+            margin-top: auto;
             display: inline-block;
-            padding: 12px 30px;
-            background: var(--primary);
-            color: white;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s;
+            font-size: 0.95rem;
         }
         
         .doc-button:hover {
-            background: var(--primary-dark);
             transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.25);
         }
         
         /* CTA секция */
         .cta-section {
-            padding: 100px 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
+            padding: 100px 24px;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--darker) 100%);
+            color: var(--light);
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
+        }
+        
+        .cta-content {
+            position: relative;
+            z-index: 1;
         }
         
         .cta-content h2 {
             font-size: 2.5rem;
             margin-bottom: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
         
         .cta-content p {
@@ -391,37 +578,24 @@
             max-width: 700px;
             margin-left: auto;
             margin-right: auto;
-            opacity: 0.9;
+            color: var(--gray);
+            line-height: 1.6;
+            font-weight: 300;
         }
         
         .cta-buttons {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 16px;
             flex-wrap: wrap;
-        }
-        
-        .btn-outline {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-            padding: 12px 30px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .btn-outline:hover {
-            background: white;
-            color: var(--primary);
         }
         
         /* Подвал */
         .footer {
-            background: var(--dark);
-            color: white;
-            padding: 60px 20px 30px;
+            background: var(--darker);
+            color: var(--light);
+            padding: 60px 24px 30px;
+            border-top: 1px solid var(--border);
         }
         
         .footer-content {
@@ -436,7 +610,8 @@
         .footer-column h3 {
             font-size: 1.2rem;
             margin-bottom: 20px;
-            color: var(--accent);
+            color: var(--primary);
+            font-weight: 600;
         }
         
         .footer-links {
@@ -444,25 +619,40 @@
         }
         
         .footer-links li {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
         .footer-links a {
-            color: #cbd5e1;
+            color: var(--gray);
             text-decoration: none;
             transition: color 0.3s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .footer-links a:hover {
-            color: white;
+            color: var(--light);
         }
         
         .footer-bottom {
             text-align: center;
             padding-top: 30px;
-            border-top: 1px solid #334155;
-            color: #94a3b8;
+            border-top: 1px solid var(--border);
+            color: var(--gray);
             font-size: 0.9rem;
+        }
+        
+        /* Анимации */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
         
         /* Адаптивность */
@@ -470,9 +660,10 @@
             .hero-container {
                 grid-template-columns: 1fr;
                 text-align: center;
+                gap: 60px;
             }
             
-            .hero-content p {
+            .hero-content {
                 max-width: 100%;
             }
             
@@ -487,11 +678,32 @@
             .hero-content h1 {
                 font-size: 2.8rem;
             }
+            
+            .hero-actions {
+                justify-content: center;
+            }
+            
+            .hero-stats {
+                justify-content: center;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
         }
         
         @media (max-width: 768px) {
+            .hero {
+                padding: 140px 20px 80px;
+                min-height: auto;
+            }
+            
             .hero-content h1 {
-                font-size: 2.2rem;
+                font-size: 2.4rem;
+            }
+            
+            .hero-content p {
+                font-size: 1.1rem;
             }
             
             .section-title {
@@ -499,8 +711,9 @@
             }
             
             .hero-stats {
-                justify-content: center;
-                flex-wrap: wrap;
+                flex-direction: column;
+                gap: 24px;
+                align-items: center;
             }
             
             .cta-buttons {
@@ -512,44 +725,67 @@
                 width: 100%;
                 max-width: 300px;
                 text-align: center;
+                justify-content: center;
             }
             
             .hero, .features, .how-it-works, .documents, .cta-section {
-                padding: 60px 20px;
+                padding: 80px 20px;
             }
             
             .stat-number {
                 font-size: 2rem;
             }
+            
+            .features-grid, .steps-container, .documents-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
         }
         
         @media (max-width: 480px) {
             .hero {
-                padding: 40px 15px;
+                padding: 120px 16px 60px;
             }
             
             .hero-content h1 {
-                font-size: 1.8rem;
+                font-size: 2rem;
             }
             
             .hero-content p {
-                font-size: 1.1rem;
+                font-size: 1rem;
+            }
+            
+            .hero-actions {
+                flex-direction: column;
+            }
+            
+            .btn-primary, .btn-secondary {
+                width: 100%;
+                justify-content: center;
             }
             
             .features, .how-it-works, .documents {
-                padding: 40px 15px;
+                padding: 60px 16px;
             }
             
             .feature-card, .step, .document-card {
-                padding: 25px 20px;
+                padding: 24px 20px;
             }
             
             .nav-container {
-                padding: 0 15px;
+                padding: 0 16px;
             }
             
             .logo span {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
+            }
+            
+            .cta-content h2 {
+                font-size: 2rem;
+            }
+            
+            .cta-content p {
+                font-size: 1rem;
             }
         }
         
@@ -558,10 +794,15 @@
             display: none;
             background: none;
             border: none;
-            color: white;
+            color: var(--light);
             font-size: 1.5rem;
             cursor: pointer;
             padding: 5px;
+            transition: opacity 0.3s;
+        }
+        
+        .mobile-menu-btn:hover {
+            opacity: 0.8;
         }
         
         @media (max-width: 992px) {
@@ -575,10 +816,12 @@
                 top: 100%;
                 left: 0;
                 right: 0;
-                background: var(--primary);
+                background: var(--darker);
                 flex-direction: column;
                 padding: 20px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                border-top: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
             }
             
             .nav-links.active {
@@ -589,6 +832,10 @@
                 padding: 15px;
                 border-radius: 8px;
                 margin-bottom: 5px;
+            }
+            
+            .nav-links a:hover {
+                background: rgba(255, 255, 255, 0.05);
             }
         }
     </style>
@@ -604,7 +851,7 @@
                 <span>HOOKAH HELPER</span>
             </a>
             
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Открыть меню">
                 <i class="fas fa-bars"></i>
             </button>
             
@@ -616,23 +863,29 @@
             </nav>
             
             <a href="https://t.me/horecahookahbot" class="cta-button">
-                <i class="fab fa-telegram"></i> Начать использовать
+                <i class="fab fa-telegram"></i> Начать
             </a>
         </div>
     </header>
 
     <!-- Герой секция -->
-    <section class="hero">
+    <section class="hero" id="hero">
         <div class="hero-container">
             <div class="hero-content">
-                <h1>Автоматизация кальянной станции в Telegram</h1>
-                <p>HOOKAH HELPER — идеальный помощник для владельцев кальянных. Полный контроль над процессами, автоматизация рутины и масштабируемость для сети заведений.</p>
+                <div class="hero-badge">
+                    <i class="fas fa-bolt"></i>
+                    Telegram-бот для кальянных
+                </div>
                 
-                <div class="cta-buttons">
-                    <a href="https://t.me/horecahookahbot" class="cta-button">
+                <h1>Автоматизация кальянной станции</h1>
+                
+                <p>HOOKAH HELPER — идеальный помощник для владельцев кальянных. Полный контроль над процессами, автоматизация рутины и масштабируемость для сети заведений в одном Telegram-боте.</p>
+                
+                <div class="hero-actions">
+                    <a href="https://t.me/horecahookahbot" class="btn-primary">
                         <i class="fab fa-telegram"></i> Подключить бота
                     </a>
-                    <a href="#features" class="btn-outline">
+                    <a href="#features" class="btn-secondary">
                         <i class="fas fa-play-circle"></i> Узнать больше
                     </a>
                 </div>
@@ -640,11 +893,11 @@
                 <div class="hero-stats">
                     <div class="stat-item">
                         <div class="stat-number">24/7</div>
-                        <div class="stat-label">Работает</div>
+                        <div class="stat-label">Работает без перерывов</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">100%</div>
-                        <div class="stat-label">Автоматизация</div>
+                        <div class="stat-label">Автоматизация процессов</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">∞</div>
@@ -654,9 +907,13 @@
             </div>
             
             <div class="hero-visual">
-                <!-- Временная иллюстрация - можно заменить на реальное изображение -->
-                <div class="bot-illustration" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 5rem;">
-                    <i class="fas fa-comments"></i>
+                <div class="bot-illustration">
+                    <div class="message-bubble message-1">
+                        <div style="color: var(--light); font-size: 0.9rem; line-height: 1.4;">✅ Чек-лист выполнен<br>Время: 12:34</div>
+                    </div>
+                    <div class="message-bubble message-2">
+                        <div style="color: var(--light); font-size: 0.9rem; line-height: 1.4;">📊 Отчет за смену:<br>Выполнено: 47 заказов</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -674,7 +931,7 @@
                         <i class="fas fa-robot"></i>
                     </div>
                     <h3>Полная автоматизация</h3>
-                    <p>Бот берет на себя все рутинные задачи: учет ингредиентов, контроль качества, формирование отчетов. Ваши мастера могут сосредоточиться на создании идеального кальяна.</p>
+                    <p>Бот берет на себя все рутинные задачи: контроль выполнения чек-листов, контроль качества, формирование отчетов. Ваши мастера могут сосредоточиться на создании идеального кальяна.</p>
                 </div>
                 
                 <div class="feature-card">
@@ -790,10 +1047,10 @@
                 <p>Присоединяйтесь к 50+ заведениям, которые уже используют HOOKAH HELPER для управления своими кальянными станциями. Первые 14 дней — бесплатно!</p>
                 
                 <div class="cta-buttons">
-                    <a href="https://t.me/horecahookahbot" class="cta-button">
+                    <a href="https://t.me/horecahookahbot" class="btn-primary" style="font-size: 1.1rem; padding: 16px 40px;">
                         <i class="fab fa-telegram"></i> Начать бесплатно
                     </a>
-                    <a href="https://t.me/adeptque" class="btn-outline">
+                    <a href="https://t.me/adeptlawliet" class="btn-secondary" style="font-size: 1.1rem; padding: 16px 40px;">
                         <i class="fas fa-question-circle"></i> Задать вопрос
                     </a>
                 </div>
@@ -807,15 +1064,15 @@
             <div class="footer-content">
                 <div class="footer-column">
                     <h3>HOOKAH HELPER</h3>
-                    <p>Идеальный помощник для кальянной станции. Автоматизация, контроль и аналитика в одном Telegram-боте.</p>
+                    <p style="color: var(--gray); font-size: 0.95rem; line-height: 1.6;">Идеальный помощник для кальянной станции. Автоматизация, контроль и аналитика в одном Telegram-боте.</p>
                 </div>
                 
                 <div class="footer-column">
                     <h3>Документы</h3>
                     <ul class="footer-links">
-                        <li><a href="/pdn/">Согласие на обработку ПДн</a></li>
-                        <li><a href="/guide/">Инструкция по использованию</a></li>
-                        <li><a href="/price/">Тарифы и условия</a></li>
+                        <li><a href="/pdn/"><i class="fas fa-file-contract"></i> Согласие на обработку ПДн</a></li>
+                        <li><a href="/guide/"><i class="fas fa-book-open"></i> Инструкция по использованию</a></li>
+                        <li><a href="/price/"><i class="fas fa-tags"></i> Тарифы и условия</a></li>
                     </ul>
                 </div>
                 
@@ -823,7 +1080,7 @@
                     <h3>Контакты</h3>
                     <ul class="footer-links">
                         <li><i class="fas fa-user"></i> Рамзан Сарымамед</li>
-                        <li><a href="https://t.me/adeptque"><i class="fab fa-telegram"></i> @adeptque</a></li>
+                        <li><a href="https://t.me/adeptlawliet"><i class="fab fa-telegram"></i> @adeptlawliet</a></li>
                         <li><a href="mailto:neganlife@gmail.com"><i class="fas fa-envelope"></i> neganlife@gmail.com</a></li>
                     </ul>
                 </div>
@@ -832,14 +1089,14 @@
                     <h3>Бот</h3>
                     <ul class="footer-links">
                         <li><a href="https://t.me/horecahookahbot"><i class="fab fa-telegram"></i> @horecahookahbot</a></li>
-                        <li><a href="#features">Возможности</a></li>
-                        <li><a href="#how-it-works">Как работает</a></li>
+                        <li><a href="#features"><i class="fas fa-star"></i> Возможности</a></li>
+                        <li><a href="#how-it-works"><i class="fas fa-cogs"></i> Как работает</a></li>
                     </ul>
                 </div>
             </div>
             
             <div class="footer-bottom">
-                <p>© 2026 HOOKAH HELPER. Все права защищены. Сайт размещен на GitHub Pages.</p>
+                <p>© 2026 HOOKAH HELPER. Все права защищены.</p>
             </div>
         </div>
     </footer>
@@ -853,11 +1110,7 @@
             mobileMenuBtn.addEventListener('click', () => {
                 navLinks.classList.toggle('active');
                 const icon = mobileMenuBtn.querySelector('i');
-                if (navLinks.classList.contains('active')) {
-                    icon.className = 'fas fa-times';
-                } else {
-                    icon.className = 'fas fa-bars';
-                }
+                icon.className = navLinks.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
             });
             
             // Закрытие меню при клике на ссылку
@@ -912,30 +1165,6 @@
             observer.observe(el);
         });
         
-        // Анимация для статистики
-        function animateStats() {
-            const stats = document.querySelectorAll('.stat-number');
-            stats.forEach(stat => {
-                const finalValue = stat.textContent;
-                if (finalValue === '∞') return;
-                
-                let currentValue = 0;
-                const increment = parseInt(finalValue) / 30;
-                const timer = setInterval(() => {
-                    currentValue += increment;
-                    if (currentValue >= parseInt(finalValue)) {
-                        stat.textContent = finalValue;
-                        clearInterval(timer);
-                    } else {
-                        stat.textContent = Math.floor(currentValue);
-                    }
-                }, 30);
-            });
-        }
-        
-        // Запускаем анимацию статистики при загрузке
-        window.addEventListener('load', animateStats);
-        
         // Закрытие мобильного меню при изменении размера окна
         window.addEventListener('resize', () => {
             if (window.innerWidth > 992 && navLinks) {
@@ -943,6 +1172,18 @@
                 if (mobileMenuBtn) {
                     mobileMenuBtn.querySelector('i').className = 'fas fa-bars';
                 }
+            }
+        });
+        
+        // Динамическое изменение шапки при скролле
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 50) {
+                header.style.background = 'rgba(10, 10, 10, 0.98)';
+                header.style.backdropFilter = 'blur(20px)';
+            } else {
+                header.style.background = 'rgba(10, 10, 10, 0.95)';
+                header.style.backdropFilter = 'blur(10px)';
             }
         });
     </script>
