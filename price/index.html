@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тарифы | HOOKAH HELPER</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d4ff;
+            --primary-dark: #0099cc;
+            --secondary: #7928ca;
+            --accent: #ff375f;
+            --dark: #0a0a0a;
+            --darker: #050505;
+            --light: #ffffff;
+            --gray: #8a8f98;
+            --gray-dark: #2a2a2a;
+            --gray-light: #1a1a1a;
+            --border: #333333;
+            --success: #00ff88;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--light);
+            background-color: var(--dark);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Шапка */
+        .header {
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 18px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: white;
+            transition: opacity 0.3s;
+        }
+        
+        .logo:hover {
+            opacity: 0.8;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+        
+        .nav-links a {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            padding: 6px 0;
+            position: relative;
+        }
+        
+        .nav-links a:hover {
+            color: var(--light);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.25);
+        }
+        
+        /* Основной контент */
+        .main-content {
+            padding: 140px 24px 100px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Заголовок страницы */
+        .page-header {
+            text-align: center;
+            margin-bottom: 80px;
+            position: relative;
+        }
+        
+        .page-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .page-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--light) 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .page-subtitle {
+            font-size: 1.25rem;
+            color: var(--gray);
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.7;
+            font-weight: 300;
+        }
+        
+        /* Блок бесплатного периода */
+        .trial-section {
+            background: linear-gradient(135deg, var(--gray-light) 0%, var(--dark) 100%);
+            border-radius: 20px;
+            padding: 48px;
+            margin-bottom: 80px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .trial-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(0, 212, 255, 0.05) 50%, transparent 70%);
+        }
+        
+        .trial-content {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+        
+        .trial-text h2 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+            color: var(--light);
+        }
+        
+        .trial-text p {
+            color: var(--gray);
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .trial-features {
+            list-style: none;
+            margin-top: 24px;
+        }
+        
+        .trial-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--gray);
+        }
+        
+        .trial-features i {
+            color: var(--success);
+            font-size: 1.2rem;
+        }
+        
+        .trial-countdown {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--primary);
+        }
+        
+        .countdown-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        
+        .countdown-label {
+            font-size: 1.1rem;
+            color: var(--light);
+            margin-bottom: 16px;
+        }
+        
+        /* Блок партнеров */
+        .partner-section {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--darker) 100%);
+            border-radius: 20px;
+            padding: 48px;
+            margin-bottom: 80px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .partner-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(121, 40, 202, 0.1) 0%, transparent 50%);
+        }
+        
+        .partner-content {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+        
+        .partner-text h2 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+            color: var(--light);
+        }
+        
+        .partner-text p {
+            color: var(--gray);
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .partner-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(121, 40, 202, 0.2);
+            color: var(--secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 16px;
+            border: 1px solid rgba(121, 40, 202, 0.3);
+        }
+        
+        .partner-visual {
+            text-align: center;
+        }
+        
+        .partner-icon {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 3rem;
+        }
+        
+        /* Тарифы */
+        .pricing-section {
+            margin-bottom: 80px;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--light);
+            letter-spacing: -0.5px;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto 64px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+        }
+        
+        .pricing-card {
+            background: var(--gray-light);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .pricing-card.popular {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, var(--gray-light) 0%, rgba(0, 212, 255, 0.05) 100%);
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        
+        .pricing-header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .pricing-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--light);
+            margin-bottom: 16px;
+        }
+        
+        .pricing-price {
+            margin-bottom: 8px;
+        }
+        
+        .price-amount {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+        }
+        
+        .price-period {
+            color: var(--gray);
+            font-size: 1rem;
+            margin-left: 4px;
+        }
+        
+        .price-savings {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .pricing-features {
+            flex-grow: 1;
+            margin-bottom: 32px;
+        }
+        
+        .features-list {
+            list-style: none;
+        }
+        
+        .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            color: var(--gray);
+        }
+        
+        .features-list i {
+            color: var(--success);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        
+        .pricing-button {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            text-align: center;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .pricing-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .pricing-card.popular .pricing-button {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
+        }
+        
+        .pricing-note {
+            text-align: center;
+            margin-top: 32px;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        /* FAQ */
+        .faq-section {
+            background: var(--darker);
+            border-radius: 20px;
+            padding: 48px;
+            border: 1px solid var(--border);
+        }
+        
+        .faq-title {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            color: var(--light);
+            text-align: center;
+        }
+        
+        .faq-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .faq-item {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 24px;
+        }
+        
+        .faq-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .faq-question {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--light);
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .faq-answer {
+            color: var(--gray);
+            line-height: 1.6;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .faq-answer.active {
+            max-height: 500px;
+        }
+        
+        /* Подвал */
+        .footer {
+            background: var(--darker);
+            color: var(--light);
+            padding: 60px 24px 30px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+        
+        .footer-links a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-links a:hover {
+            color: var(--light);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        /* Кнопка назад */
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 32px;
+            transition: color 0.3s;
+        }
+        
+        .back-button:hover {
+            color: var(--light);
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 992px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .page-title {
+                font-size: 2.8rem;
+            }
+            
+            .trial-content,
+            .partner-content {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            
+            .trial-countdown {
+                order: -1;
+            }
+            
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+                margin: 0 auto;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 120px 20px 80px;
+            }
+            
+            .page-title {
+                font-size: 2.4rem;
+            }
+            
+            .page-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .trial-section,
+            .partner-section,
+            .faq-section {
+                padding: 32px;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .trial-text h2,
+            .partner-text h2 {
+                font-size: 1.7rem;
+            }
+            
+            .countdown-number {
+                font-size: 2.8rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 100px 16px 60px;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .page-subtitle {
+                font-size: 1rem;
+            }
+            
+            .trial-section,
+            .partner-section,
+            .faq-section {
+                padding: 24px;
+            }
+            
+            .trial-text h2,
+            .partner-text h2 {
+                font-size: 1.5rem;
+            }
+            
+            .price-amount {
+                font-size: 2.8rem;
+            }
+            
+            .pricing-card {
+                padding: 32px 24px;
+            }
+            
+            .nav-container {
+                padding: 0 16px;
+            }
+        }
+        
+        /* Мобильное меню */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            transition: opacity 0.3s;
+        }
+        
+        .mobile-menu-btn:hover {
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 992px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--darker);
+                flex-direction: column;
+                padding: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                border-top: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links a {
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 5px;
+            }
+            
+            .nav-links a:hover {
+                background: rgba(255, 255, 255, 0.05);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Шапка -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span>HOOKAH HELPER</span>
+            </a>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Открыть меню">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <nav class="nav-links" id="navLinks">
+                <a href="/">Главная</a>
+                <a href="#pricing">Тарифы</a>
+                <a href="/guide/">Инструкция</a>
+                <a href="/pdn/">Соглашение</a>
+                <a href="#contacts">Контакты</a>
+            </nav>
+            
+            <a href="https://t.me/horecahookahbot" class="cta-button">
+                <i class="fab fa-telegram"></i> Начать
+            </a>
+        </div>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Кнопка назад -->
+            <a href="/" class="back-button">
+                <i class="fas fa-arrow-left"></i> На главную
+            </a>
+            
+            <!-- Заголовок страницы -->
+            <div class="page-header">
+                <div class="page-badge">
+                    <i class="fas fa-tags"></i>
+                    Гибкие тарифы
+                </div>
+                <h1 class="page-title">Выберите подходящий тариф</h1>
+                <p class="page-subtitle">Получите доступ ко всем функциям бота по выгодной цене. Начните с бесплатного пробного периода.</p>
+            </div>
+            
+            <!-- Бесплатный пробный период -->
+            <section class="trial-section">
+                <div class="trial-content">
+                    <div class="trial-text">
+                        <h2>Бесплатный пробный период 14 дней</h2>
+                        <p>Попробуйте все возможности HOOKAH HELPER совершенно бесплатно. Полный доступ к функционалу для одного пользователя на 14 дней без каких-либо ограничений.</p>
+                        <p>После окончания пробного периода вы сможете выбрать подходящий тариф и продолжить использование бота.</p>
+                        
+                        <ul class="trial-features">
+                            <li><i class="fas fa-check-circle"></i> Полный доступ ко всем функциям</li>
+                            <li><i class="fas fa-check-circle"></i> Работа с одним заведением</li>
+                            <li><i class="fas fa-check-circle"></i> Техническая поддержка</li>
+                            <li><i class="fas fa-check-circle"></i> Без скрытых платежей</li>
+                        </ul>
+                        
+                        <a href="https://t.me/horecahookahbot" class="cta-button" style="margin-top: 24px;">
+                            <i class="fas fa-rocket"></i> Начать бесплатно
+                        </a>
+                    </div>
+                    
+                    <div class="trial-countdown">
+                        <div class="countdown-number">14</div>
+                        <div class="countdown-label">дней бесплатно</div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">для новых пользователей</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Для партнеров WAVE SELECT -->
+            <section class="partner-section">
+                <div class="partner-content">
+                    <div class="partner-text">
+                        <h2>Для партнеров WAVE SELECT</h2>
+                        <p>Участникам программы <strong>WAVE SELECT</strong> предоставляется полный доступ к функционалу бота <strong>HOOKAH HELPER</strong> без ограничений по времени.</p>
+                        <p>Данное предложение доступно только для заведений, расположенных в <strong>г. Екатеринбург</strong>.</p>
+                        
+                        <div class="partner-badge">
+                            <i class="fas fa-crown"></i>
+                            Эксклюзивное предложение
+                        </div>
+                    </div>
+                    
+                    <div class="partner-visual">
+                        <div class="partner-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">
+                            Для подтверждения статуса партнера<br>свяжитесь с нами
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Тарифы -->
+            <section class="pricing-section" id="pricing">
+                <h2 class="section-title">Платные тарифы</h2>
+                <p class="section-subtitle">Выберите оптимальный вариант для вашего заведения. Чем дольше срок, тем выгоднее цена.</p>
+                
+                <div class="pricing-grid">
+                    <!-- Месячный тариф -->
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3 class="pricing-title">Месячный</h3>
+                            <div class="pricing-price">
+                                <span class="price-amount">599</span>
+                                <span class="price-period">₽/месяц</span>
+                            </div>
+                            <div class="price-savings">Базовый тариф</div>
+                        </div>
+                        
+                        <div class="pricing-features">
+                            <ul class="features-list">
+                                <li><i class="fas fa-check"></i> Полный доступ к функциям бота</li>
+                                <li><i class="fas fa-check"></i> 1 заведение</li>
+                                <li><i class="fas fa-check"></i> Количество мастеров неограничено</li>
+                                <li><i class="fas fa-check"></i> Техническая поддержка</li>
+                                <li><i class="fas fa-check"></i> Обновления и улучшения</li>
+                            </ul>
+                        </div>
+                        
+                        <a href="https://t.me/horecahookahbot" class="pricing-button">
+                            Выбрать тариф
+                        </a>
+                    </div>
+                    
+                    <!-- Полугодовой тариф (ПОПУЛЯРНЫЙ) -->
+                    <div class="pricing-card popular">
+                        <div class="popular-badge">Выгоднее на 16%</div>
+                        
+                        <div class="pricing-header">
+                            <h3 class="pricing-title">Полугодовой</h3>
+                            <div class="pricing-price">
+                                <span class="price-amount">2 999</span>
+                                <span class="price-period">₽/6 месяцев</span>
+                            </div>
+                            <div class="price-savings">
+                                <i class="fas fa-bolt"></i> Экономия 595 ₽
+                            </div>
+                        </div>
+                        
+                        <div class="pricing-features">
+                            <ul class="features-list">
+                                <li><i class="fas fa-check"></i> Всё из тарифа "Месячный"</li>
+                                <li><i class="fas fa-check"></i> Фиксированная цена на 6 месяцев</li>
+                                <li><i class="fas fa-check"></i> Приоритетная поддержка</li>
+                                <li><i class="fas fa-check"></i> Количество мастеров неограничено</li>
+                            </ul>
+                        </div>
+                        
+                        <a href="https://t.me/horecahookahbot" class="pricing-button">
+                            Выбрать тариф
+                        </a>
+                    </div>
+                    
+                    <!-- Годовой тариф -->
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3 class="pricing-title">Годовой</h3>
+                            <div class="pricing-price">
+                                <span class="price-amount">5 999</span>
+                                <span class="price-period">₽/год</span>
+                            </div>
+                            <div class="price-savings">
+                                <i class="fas fa-gem"></i> Экономия 1 189 ₽
+                            </div>
+                        </div>
+                        
+                        <div class="pricing-features">
+                            <ul class="features-list">
+                                <li><i class="fas fa-check"></i> Всё из тарифа "Месячный"</li>
+                                <li><i class="fas fa-check"></i> Максимальная экономия</li>
+                                <li><i class="fas fa-check"></i> Количество мастеров неограничено</li>
+                                <li><i class="fas fa-check"></i> Консультации по оптимизации</li>
+                            </ul>
+                        </div>
+                        
+                        <a href="https://t.me/horecahookahbot" class="pricing-button">
+                            Выбрать тариф
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="pricing-note">
+                    <p>Все цены указаны в рублях. Оплата через Telegram-бота.</p>
+                </div>
+            </section>
+            
+            <!-- FAQ -->
+            <section class="faq-section">
+                <h2 class="faq-title">Частые вопросы</h2>
+                
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleAnswer(this)">
+                            Как начать пользоваться ботом?
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Запустить бота по команде /start и выбрать вариант использования.
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleAnswer(this)">
+                            Что входит в бесплатный пробный период?
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Полный доступ ко всем функциям бота на 14 дней для одного заведения. Ограничений по функционалу нет. После окончания пробного периода необходимо выбрать один из платных тарифов.
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleAnswer(this)">
+                            Можно ли использовать бот для нескольких заведений?
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Да, для каждого заведения необходимо создать отдельный чат в Telegram и добавить туда бота. Каждый чат будет работать с изолированной базой данных.
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleAnswer(this)">
+                            Как происходит оплата?
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Оплата происходит напрямую в Telegram-боте через встроенную платежную систему. Оплата проходит по СБП.
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleAnswer(this)">
+                            Как стать партнером WAVE SELECT?
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Для получения информации о программе WAVE SELECT и условиях партнерства свяжитесь с нами через Telegram @adeptlawliet. Предложение действительно только для заведений в г. Екатеринбург.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Подвал -->
+    <footer class="footer" id="contacts">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>HOOKAH HELPER</h3>
+                    <p style="color: var(--gray); font-size: 0.95rem; line-height: 1.6;">Идеальный помощник для кальянной станции. Автоматизация, контроль и аналитика в одном Telegram-боте.</p>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Документы</h3>
+                    <ul class="footer-links">
+                        <li><a href="/pdn/"><i class="fas fa-file-contract"></i> Согласие на обработку ПДн</a></li>
+                        <li><a href="/guide/"><i class="fas fa-book-open"></i> Инструкция по использованию</a></li>
+                        <li><a href="/price/"><i class="fas fa-tags"></i> Тарифы и условия</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Контакты</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-user"></i> Рамзан Сарымамед</li>
+                        <li><a href="https://t.me/adeptlawliet"><i class="fab fa-telegram"></i> @adeptlawliet</a></li>
+                        <li><a href="mailto:neganlife@gmail.com"><i class="fas fa-envelope"></i> neganlife@gmail.com</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Бот</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://t.me/horecahookahbot"><i class="fab fa-telegram"></i> @horecahookahbot</a></li>
+                        <li><a href="/#features"><i class="fas fa-star"></i> Возможности</a></li>
+                        <li><a href="/#how-it-works"><i class="fas fa-cogs"></i> Как работает</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2026 HOOKAH HELPER. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Мобильное меню
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navLinks = document.getElementById('navLinks');
+        
+        if (mobileMenuBtn && navLinks) {
+            mobileMenuBtn.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
+                const icon = mobileMenuBtn.querySelector('i');
+                icon.className = navLinks.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
+            });
+            
+            // Закрытие меню при клике на ссылку
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.addEventListener('click', () => {
+                    navLinks.classList.remove('active');
+                    mobileMenuBtn.querySelector('i').className = 'fas fa-bars';
+                });
+            });
+        }
+        
+        // Плавная прокрутка для якорных ссылок
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href === '#' || href === '#!') return;
+                
+                e.preventDefault();
+                
+                const targetId = href;
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // FAQ аккордеон
+        function toggleAnswer(element) {
+            const answer = element.nextElementSibling;
+            const icon = element.querySelector('i');
+            
+            // Закрываем все остальные ответы
+            document.querySelectorAll('.faq-answer').forEach(item => {
+                if (item !== answer && item.classList.contains('active')) {
+                    item.classList.remove('active');
+                    const otherIcon = item.previousElementSibling.querySelector('i');
+                    otherIcon.className = 'fas fa-chevron-down';
+                }
+            });
+            
+            // Переключаем текущий ответ
+            answer.classList.toggle('active');
+            icon.className = answer.classList.contains('active') ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+        }
+        
+        // Закрытие мобильного меню при изменении размера окна
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 992 && navLinks) {
+                navLinks.classList.remove('active');
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.querySelector('i').className = 'fas fa-bars';
+                }
+            }
+        });
+        
+        // Динамическое изменение шапки при скролле
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 50) {
+                header.style.background = 'rgba(10, 10, 10, 0.98)';
+                header.style.backdropFilter = 'blur(20px)';
+            } else {
+                header.style.background = 'rgba(10, 10, 10, 0.95)';
+                header.style.backdropFilter = 'blur(10px)';
+            }
+        });
+        
+        // Анимация появления элементов
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        // Настройка элементов для анимации
+        document.querySelectorAll('.pricing-card, .trial-section, .partner-section, .faq-item').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
