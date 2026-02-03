@@ -18,26 +18,50 @@ class ScheduleMiniApp {
     
     async init() {
         try {
-            // Загружаем данные из URL параметров
             await this.loadDataFromURL();
             
-            // Загружаем сохраненные данные из localStorage
+            // Загружаем тему
+            this.loadTheme();
+            
             this.loadFromLocalStorage();
-            
-            // Инициализируем интерфейс
             this.initUI();
-            
-            // Рендерим календарь и список мастеров
             this.renderCalendar();
             this.renderMastersList();
-            
-            // Скрываем экран загрузки
             this.hideLoading();
+            
+            // Добавляем обработчик изменения темы
+            document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
             
         } catch (error) {
             console.error('Ошибка инициализации:', error);
             this.showNotification('Ошибка загрузки данных', 'error');
         }
+    }
+    
+    loadTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        this.updateThemeIcon(savedTheme);
+    }
+    
+    updateThemeIcon(theme) {
+        const icon = document.querySelector('#theme-toggle i');
+        if (theme === 'dark') {
+            icon.className = 'fas fa-sun';
+            icon.title = 'Переключить на светлую тему';
+        } else {
+            icon.className = 'fas fa-moon';
+            icon.title = 'Переключить на темную тему';
+        }
+    }
+    
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        this.updateThemeIcon(newTheme);
     }
     
     async loadDataFromURL() {
@@ -49,12 +73,10 @@ class ScheduleMiniApp {
                 throw new Error('No data parameter found');
             }
             
-            // Декодируем данные
             const decodedParam = decodeURIComponent(dataParam);
             const jsonStr = atob(decodedParam);
             const mastersData = JSON.parse(jsonStr);
             
-            // Конвертируем в объекты
             this.masters = mastersData.map(master => ({
                 id: master[0],
                 name: master[1]
@@ -87,7 +109,6 @@ class ScheduleMiniApp {
             const key = `schedule_${this.currentYear}_${this.currentMonth + 1}`;
             localStorage.setItem(key, JSON.stringify(this.schedule));
             
-            // Показываем уведомление о сохранении
             this.showSaveNotification();
         } catch (error) {
             console.error('Ошибка сохранения в localStorage:', error);
@@ -95,13 +116,8 @@ class ScheduleMiniApp {
     }
     
     initUI() {
-        // Обновляем заголовок месяца
         this.updateMonthTitle();
-        
-        // Статистика
         this.updateStats();
-        
-        // Назначаем обработчики событий
         this.setupEventListeners();
     }
     
@@ -110,19 +126,29 @@ class ScheduleMiniApp {
         document.getElementById('prev-month').addEventListener('click', () => this.changeMonth(-1));
         document.getElementById('next-month').addEventListener('click', () => this.changeMonth(1));
         
-        // Кнопки управления
-        document.getElementById('save-day').addEventListener('click', () => this.saveCurrentDay());
+        // Управление сменами
         document.getElementById('clear-day').addEventListener('click', () => this.clearCurrentDay());
-        document.getElementById('export-json').addEventListener('click', () => this.exportToJson());
         document.getElementById('send-all').addEventListener('click', () => this.exportToJson());
         
-        // Поиск мастеров
-        document.getElementById('search-masters').addEventListener('input', (e) => this.searchMasters(e.target.value));
+        // Модальные окна
+        document.getElementById('modal-close').addEventListener('click', () => this.hideModal());
+        document.getElementById('confirm-cancel').addEventListener('click', () => this.hideModal());
+        document.getElementById('confirm-ok').addEventListener('click', () => this.confirmAction());
+        
+        // Окно экспорта
+        document.getElementById('export-close').addEventListener('click', () => this.hideExportModal());
+        document.getElementById('close-export').addEventListener('click', () => this.hideExportModal());
+        document.getElementById('copy-json').addEventListener('click', () => this.copyJsonToClipboard());
     }
     
     hideLoading() {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('main-ui').style.display = 'flex';
+        
+        // Плавное появление контента
+        setTimeout(() => {
+            document.getElementById('main-ui').style.opacity = '1';
+        }, 50);
     }
     
     updateMonthTitle() {
@@ -181,6 +207,7 @@ class ScheduleMiniApp {
         let firstDayOfWeek = firstDay.getDay();
         if (firstDayOfWeek === 0) firstDayOfWeek = 7;
         
+        // Пустые дни в начале месяца
         for (let i = 1; i < firstDayOfWeek; i++) {
             calendarEl.appendChild(this.createEmptyDay());
         }
@@ -188,6 +215,7 @@ class ScheduleMiniApp {
         const today = new Date();
         const isCurrentMonth = today.getFullYear() === this.currentYear && today.getMonth() === this.currentMonth;
         
+        // Дни месяца
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${day}`;
             const mastersOnDay = this.schedule[dateKey] || [];
@@ -243,7 +271,7 @@ class ScheduleMiniApp {
             more.textContent = `+${options.mastersCount - maxIndicators}`;
             more.style.cssText = `
                 font-size: 9px;
-                color: #20c997;
+                color: var(--success-color);
                 font-weight: bold;
                 margin-left: 2px;
             `;
@@ -263,7 +291,8 @@ class ScheduleMiniApp {
     isWeekend(day) {
         const date = new Date(this.currentYear, this.currentMonth, day);
         const dayOfWeek = date.getDay();
-        return dayOfWeek === 0 || dayOfWeek === 6;
+        // Пятница (5) и Суббота (6) - выходные
+        return dayOfWeek === 5 || dayOfWeek === 6;
     }
     
     selectDay(day) {
@@ -279,10 +308,15 @@ class ScheduleMiniApp {
         this.renderMastersList();
         this.updateStats();
         
-        document.getElementById('day-info').scrollIntoView({ 
-            behavior: 'smooth',
-            block: 'nearest'
-        });
+        // Плавная прокрутка к информации о дне на мобильных устройствах
+        if (window.innerWidth < 768) {
+            setTimeout(() => {
+                document.getElementById('day-info').scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+            }, 100);
+        }
     }
     
     updateDayInfo() {
@@ -313,7 +347,7 @@ class ScheduleMiniApp {
                         const item = document.createElement('div');
                         item.className = 'assigned-item';
                         item.innerHTML = `
-                            <i class="fas fa-user"></i>
+                            <div class="master-avatar">${master.name.charAt(0)}</div>
                             <span>${master.name}</span>
                         `;
                         assignedList.appendChild(item);
@@ -326,28 +360,12 @@ class ScheduleMiniApp {
         }
     }
     
-    searchMasters(query) {
-        const searchTerm = query.toLowerCase().trim();
-        
-        if (!searchTerm) {
-            this.renderMastersList();
-            return;
-        }
-        
-        const filteredMasters = this.masters.filter(master =>
-            master.name.toLowerCase().includes(searchTerm)
-        );
-        
-        this.renderMastersList(filteredMasters);
-    }
-    
-    renderMastersList(mastersToShow = null) {
+    renderMastersList() {
         const mastersListEl = document.getElementById('masters-list');
-        const masters = mastersToShow || this.masters;
-        
         mastersListEl.innerHTML = '';
         
-        const mastersWithStats = masters.map(master => {
+        // Добавляем мастеров с информацией о количестве смен
+        const mastersWithStats = this.masters.map(master => {
             const shiftCount = this.getMasterShiftCount(master.id);
             return { ...master, shiftCount };
         }).sort((a, b) => b.shiftCount - a.shiftCount);
@@ -358,10 +376,10 @@ class ScheduleMiniApp {
             mastersListEl.appendChild(masterEl);
         });
         
-        if (masters.length === 0) {
+        if (this.masters.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.className = 'empty-state';
-            emptyMsg.textContent = 'Мастера не найдены';
+            emptyMsg.textContent = 'Мастера не загружены';
             mastersListEl.appendChild(emptyMsg);
         }
     }
@@ -372,11 +390,9 @@ class ScheduleMiniApp {
         if (isSelected) div.classList.add('selected');
         div.dataset.masterId = master.id;
         
-        const checkbox = document.createElement('div');
-        checkbox.className = 'master-checkbox';
-        if (isSelected) {
-            checkbox.innerHTML = '<i class="fas fa-check"></i>';
-        }
+        const avatar = document.createElement('div');
+        avatar.className = 'master-avatar';
+        avatar.textContent = master.name.charAt(0);
         
         const info = document.createElement('div');
         info.className = 'master-info';
@@ -385,15 +401,19 @@ class ScheduleMiniApp {
         name.className = 'master-name';
         name.textContent = master.name;
         
+        const stats = document.createElement('div');
+        stats.className = 'master-stats';
+        
         const shifts = document.createElement('div');
         shifts.className = 'master-shifts';
-        shifts.textContent = master.shiftCount;
+        shifts.innerHTML = `<i class="fas fa-calendar-check"></i> ${master.shiftCount}`;
         shifts.title = `Смен в этом месяце: ${master.shiftCount}`;
         
+        stats.appendChild(shifts);
         info.appendChild(name);
-        info.appendChild(shifts);
+        info.appendChild(stats);
         
-        div.appendChild(checkbox);
+        div.appendChild(avatar);
         div.appendChild(info);
         
         div.addEventListener('click', () => this.toggleMasterSelection(master.id));
@@ -424,12 +444,19 @@ class ScheduleMiniApp {
         }
         
         if (this.selectedMasters.has(masterId)) {
+            // Удаляем мастера из смены
             this.selectedMasters.delete(masterId);
             const index = this.schedule[dateKey].indexOf(masterId);
             if (index > -1) {
                 this.schedule[dateKey].splice(index, 1);
             }
+            
+            // Если мастеров не осталось, удаляем день из расписания
+            if (this.schedule[dateKey].length === 0) {
+                delete this.schedule[dateKey];
+            }
         } else {
+            // Добавляем мастера в смену
             this.selectedMasters.add(masterId);
             if (!this.schedule[dateKey].includes(masterId)) {
                 this.schedule[dateKey].push(masterId);
@@ -441,28 +468,7 @@ class ScheduleMiniApp {
         this.renderMastersList();
         this.updateStats();
         
-        this.saveToLocalStorage();
-    }
-    
-    saveCurrentDay() {
-        if (!this.selectedDay) {
-            this.showNotification('Выберите день для сохранения', 'error');
-            return;
-        }
-        
-        const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${this.selectedDay}`;
-        
-        if (this.selectedMasters.size === 0) {
-            delete this.schedule[dateKey];
-            this.showNotification('Смена очищена', 'info');
-        } else {
-            this.showNotification('Смена сохранена', 'success');
-        }
-        
-        this.updateDayInfo();
-        this.renderCalendar();
-        this.updateStats();
-        
+        // Автосохранение
         this.saveToLocalStorage();
     }
     
@@ -505,57 +511,34 @@ class ScheduleMiniApp {
         
         const jsonStr = JSON.stringify(dataToExport, null, 2);
         
-        this.showExportModal(jsonStr);
+        // Показываем модальное окно экспорта
+        const exportModal = document.getElementById('export-modal');
+        const exportTextarea = document.getElementById('export-json');
+        
+        exportTextarea.value = jsonStr;
+        exportModal.style.display = 'flex';
+        
+        // Автоматически выделяем текст для удобства копирования
+        setTimeout(() => {
+            exportTextarea.select();
+        }, 100);
     }
     
-    showExportModal(jsonData) {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.style.display = 'flex';
+    hideExportModal() {
+        document.getElementById('export-modal').style.display = 'none';
+    }
+    
+    copyJsonToClipboard() {
+        const textarea = document.getElementById('export-json');
+        textarea.select();
         
-        modal.innerHTML = `
-            <div class="modal" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h3><i class="fas fa-file-export"></i> Экспорт графика</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>Скопируйте весь текст ниже и отправьте его боту в Telegram:</p>
-                    <textarea id="export-json" readonly 
-                        style="width: 100%; height: 300px; font-family: monospace; 
-                               padding: 10px; border: 1px solid #ddd; border-radius: 5px;
-                               font-size: 12px; margin: 10px 0;">
-${jsonData}
-                    </textarea>
-                    <p style="color: #666; font-size: 0.9rem; margin-top: 15px;">
-                        <b>Инструкция:</b><br>
-                        1. Скопируйте весь текст из поля выше<br>
-                        2. Перейдите в Telegram и отправьте этот текст боту<br>
-                        3. Бот подтвердит сохранение графика
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button id="copy-json" class="btn btn-primary">
-                        <i class="fas fa-copy"></i> Скопировать JSON
-                    </button>
-                    <button id="close-export" class="btn">
-                        Закрыть
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-        modal.querySelector('#close-export').addEventListener('click', () => modal.remove());
-        
-        modal.querySelector('#copy-json').addEventListener('click', () => {
-            const textarea = modal.querySelector('#export-json');
-            textarea.select();
+        try {
             document.execCommand('copy');
-            this.showNotification('JSON скопирован!', 'success');
-        });
+            this.showNotification('JSON скопирован! Отправьте его боту', 'success');
+        } catch (err) {
+            console.error('Ошибка копирования:', err);
+            this.showNotification('Не удалось скопировать текст', 'error');
+        }
     }
     
     showConfirmModal(message, onConfirm) {
@@ -597,6 +580,17 @@ ${jsonData}
     }
 }
 
+// Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
+    // Добавляем обработчик для закрытия модальных окон по клику вне их
+    document.addEventListener('click', (e) => {
+        const modalOverlays = document.querySelectorAll('.modal-overlay');
+        modalOverlays.forEach(modal => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    
     window.miniApp = new ScheduleMiniApp();
 });
