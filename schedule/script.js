@@ -6,14 +6,14 @@ class ScheduleMiniApp {
         this.selectedDay = null;
         this.masters = [];
         this.daysOff = []; 
+        // Структура schedule теперь: { "YYYY-MM-DD": { masterId: 'full' | 'evening', ... } }
         this.schedule = {};
-        this.selectedMasters = new Set();
+        this.selectedMasters = new Map(); // Map<MasterId, ShiftType>
         this.chatId = null;
         
         // Новые свойства для View Mode
         this.mode = 'edit'; // 'edit' or 'view'
-        this.filterMode = 'all'; // 'all' or 'my'
-        this.targetMasterId = null; // ID "меня" для фильтрации
+        this.targetMasterId = null; // ID "меня" для фильтрации (оставляем только для подсветки в списке)
         this.isReadOnly = false;
         
         this.monthNames = [
@@ -42,56 +42,10 @@ class ScheduleMiniApp {
             
             document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
             
-            // Инициализация фильтра
-            this.setupViewFilter();
-            
         } catch (error) {
             console.error('Ошибка инициализации:', error);
             this.showNotification('Ошибка загрузки данных', 'error');
         }
-    }
-    
-    setupViewFilter() {
-        if (this.mode === 'view') {
-            document.getElementById('view-toggle').style.display = 'flex';
-            
-            const options = document.querySelectorAll('.toggle-option');
-            const bg = document.querySelector('.toggle-bg');
-            
-            options.forEach(option => {
-                option.addEventListener('click', (e) => {
-                    // Update UI
-                    options.forEach(o => o.classList.remove('active'));
-                    e.target.classList.add('active');
-                    
-                    // Move background
-                    const index = Array.from(options).indexOf(e.target);
-                    bg.style.transform = `translateX(${index * 100}%)`;
-                    
-                    // Apply filter
-                    this.filterMode = e.target.dataset.filter;
-                    this.applyFilter();
-                });
-            });
-            
-            // Если передан параметр filter=my в URL, активируем его
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('filter') === 'my' && this.targetMasterId) {
-                // Trigger click on 'my' option
-                const myOption = document.querySelector('.toggle-option[data-filter="my"]');
-                if (myOption) myOption.click();
-            }
-        }
-    }
-    
-    applyFilter() {
-        this.renderCalendar();
-        // В режиме фильтрации сбрасываем выбор дня, чтобы не путать
-        this.selectedDay = null;
-        this.selectedMasters.clear();
-        this.updateDayInfo();
-        this.renderMastersList();
-        this.updateStats();
     }
     
     loadTheme() {
@@ -153,7 +107,6 @@ class ScheduleMiniApp {
             }
 
             // Декодируем стандартный Base64
-            // Поскольку Python теперь использует ensure_ascii=True, результат atob будет чистым JSON
             const jsonStr = atob(base64);
             const parsedData = JSON.parse(jsonStr);
             
@@ -173,7 +126,7 @@ class ScheduleMiniApp {
                 
                 // Если передали расписание (режим просмотра)
                 if (parsedData.s) {
-                    this.schedule = parsedData.s;
+                    this.schedule = this.convertLegacySchedule(parsedData.s);
                 }
                 
                 // Если передали год/месяц, устанавливаем их
@@ -184,7 +137,6 @@ class ScheduleMiniApp {
                 
                 // Если передали ID текущего мастера (для подсветки)
                 if (parsedData.target_master_id) {
-                    // FIX: Приводим к числу, так как ID мастеров - это целые числа
                     this.targetMasterId = parseInt(parsedData.target_master_id, 10);
                 }
             } else if (Array.isArray(parsedData)) {
@@ -201,13 +153,32 @@ class ScheduleMiniApp {
         }
     }
     
+    // Преобразование старого формата списка ID в новый формат Map
+    convertLegacySchedule(legacySchedule) {
+        const newSchedule = {};
+        for (const [date, value] of Object.entries(legacySchedule)) {
+            newSchedule[date] = {};
+            if (Array.isArray(value)) {
+                // Если это список ID, считаем их всех 'full'
+                value.forEach(id => {
+                    newSchedule[date][id] = 'full';
+                });
+            } else {
+                // Если это уже объект (новый формат), используем как есть
+                newSchedule[date] = value;
+            }
+        }
+        return newSchedule;
+    }
+    
     loadFromLocalStorage() {
         try {
             const key = `schedule_${this.currentYear}_${this.currentMonth + 1}`;
             const savedData = localStorage.getItem(key);
             
             if (savedData) {
-                this.schedule = JSON.parse(savedData);
+                const parsed = JSON.parse(savedData);
+                this.schedule = this.convertLegacySchedule(parsed);
             }
         } catch (error) {
             console.error('Ошибка загрузки из localStorage:', error);
@@ -265,7 +236,8 @@ class ScheduleMiniApp {
     
     updateStats() {
         const daysWithShifts = Object.keys(this.schedule).length;
-        const totalShifts = Object.values(this.schedule).reduce((sum, masters) => sum + masters.length, 0);
+        // Подсчет смен теперь сложнее, так как schedule[date] это объект
+        const totalShifts = Object.values(this.schedule).reduce((sum, dateMap) => sum + Object.keys(dateMap).length, 0);
         
         document.getElementById('stats-masters').textContent = this.masters.length;
         document.getElementById('stats-days').textContent = daysWithShifts;
@@ -324,27 +296,12 @@ class ScheduleMiniApp {
         const isCurrentMonth = today.getFullYear() === this.currentYear && today.getMonth() === this.currentMonth;
         
         for (let day = 1; day <= daysInMonth; day++) {
-            // FIX: Форматируем дату с ведущими нулями (YYYY-MM-DD), чтобы совпадало с ключами из Python
             const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
-            let mastersOnDay = this.schedule[dateKey] || [];
+            // mastersOnDayMap: { masterId: 'type', ... }
+            let mastersOnDayMap = this.schedule[dateKey] || {};
+            let mastersCount = Object.keys(mastersOnDayMap).length;
             
-            // Filter logic for View Mode
-            let isDimmed = false;
-            let displayMasters = mastersOnDay;
-            let isHighlighted = false;
-
-            if (this.filterMode === 'my' && this.targetMasterId) {
-                // ВАЖНО: Приводим ID к числу для сравнения
-                const hasMe = mastersOnDay.some(id => parseInt(id) === this.targetMasterId);
-                
-                if (!hasMe) {
-                    isDimmed = true; // Скрываем (диммим) дни, где меня нет
-                } else {
-                    isHighlighted = true; // Подсвечиваем мои дни
-                }
-            }
-
             const isToday = isCurrentMonth && day === today.getDate();
             const isWeekend = this.isWeekend(day);
             const isSelected = this.selectedDay === day;
@@ -353,11 +310,9 @@ class ScheduleMiniApp {
                 isToday,
                 isWeekend,
                 isSelected,
-                hasShift: mastersOnDay.length > 0,
-                mastersCount: mastersOnDay.length,
-                mastersIds: mastersOnDay, // Pass IDs to check for specific master
-                isDimmed,
-                isHighlighted
+                hasShift: mastersCount > 0,
+                mastersCount: mastersCount,
+                mastersMap: mastersOnDayMap
             }));
         }
     }
@@ -378,10 +333,6 @@ class ScheduleMiniApp {
         if (options.isSelected) div.classList.add('day-selected');
         if (options.hasShift) div.classList.add('day-shift');
         
-        // CSS классы для фильтрации
-        if (options.isDimmed) div.classList.add('day-dimmed');
-        if (options.isHighlighted) div.classList.add('day-highlight');
-        
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
@@ -389,48 +340,41 @@ class ScheduleMiniApp {
         const mastersIndicators = document.createElement('div');
         mastersIndicators.className = 'day-masters';
         
-        // В режиме "Мои смены" показываем только мою точку или вообще ничего лишнего
-        if (this.filterMode === 'my' && this.targetMasterId) {
-             // Если это подсвеченный день (значит я работаю)
-             if (options.isHighlighted) {
-                 const dot = document.createElement('div');
-                 dot.className = 'master-dot my-dot';
-                 mastersIndicators.appendChild(dot);
-             }
-        } else {
-            // Стандартный режим - показываем до 3 точек
-            const maxIndicators = 3;
-            const indicatorsCount = Math.min(options.mastersCount, maxIndicators);
+        const maxIndicators = 3;
+        const indicatorsCount = Math.min(options.mastersCount, maxIndicators);
+        const mastersValues = Object.values(options.mastersMap); // ['full', 'evening', ...]
+        
+        for (let i = 0; i < indicatorsCount; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'master-dot';
             
-            for (let i = 0; i < indicatorsCount; i++) {
-                const dot = document.createElement('div');
-                dot.className = 'master-dot';
-                mastersIndicators.appendChild(dot);
+            // Если смена вечерняя - добавляем класс
+            if (mastersValues[i] === 'evening') {
+                dot.classList.add('evening');
             }
             
-            if (options.mastersCount > maxIndicators) {
-                const more = document.createElement('div');
-                more.className = 'master-more';
-                more.textContent = `+${options.mastersCount - maxIndicators}`;
-                more.style.cssText = `
-                    font-size: 9px;
-                    color: var(--success-color);
-                    font-weight: bold;
-                    margin-left: 2px;
-                `;
-                mastersIndicators.appendChild(more);
-            }
+            mastersIndicators.appendChild(dot);
+        }
+        
+        if (options.mastersCount > maxIndicators) {
+            const more = document.createElement('div');
+            more.className = 'master-more';
+            more.textContent = `+${options.mastersCount - maxIndicators}`;
+            more.style.cssText = `
+                font-size: 9px;
+                color: var(--success-color);
+                font-weight: bold;
+                margin-left: 2px;
+            `;
+            mastersIndicators.appendChild(more);
         }
         
         div.appendChild(dayNumber);
         
-        // Добавляем индикаторы только если есть смены и мы не задимлены
-        if (options.mastersCount > 0 && !options.isDimmed) {
+        if (options.mastersCount > 0) {
             div.appendChild(mastersIndicators);
         }
         
-        // В режиме просмотра клик просто показывает инфо
-        // Если день dimmed, pointer-events: none в CSS уже отключит клик
         div.addEventListener('click', () => this.selectDay(day));
         
         return div;
@@ -445,17 +389,18 @@ class ScheduleMiniApp {
     selectDay(day) {
         this.selectedDay = day;
         
-        // FIX: Используем padStart для корректного ключа даты
         const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const mastersOnDay = this.schedule[dateKey] || [];
+        // Получаем Map {id: type}
+        const mastersOnDayMap = this.schedule[dateKey] || {};
         
-        this.selectedMasters = new Set(mastersOnDay);
+        // Преобразуем в Map для удобства работы
+        this.selectedMasters = new Map();
+        for (const [id, type] of Object.entries(mastersOnDayMap)) {
+            this.selectedMasters.set(parseInt(id), type);
+        }
         
-        // В режиме View перерисовываем календарь, чтобы подсветить выбранный день
         this.renderCalendar();
         this.updateDayInfo();
-        
-        // В режиме View список мастеров не обновляем "для выбора", а просто показываем
         this.renderMastersList();
         this.updateStats();
         
@@ -482,27 +427,36 @@ class ScheduleMiniApp {
             
             assignedList.innerHTML = '';
             
-            // FIX: Используем padStart
             const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
-            const mastersOnDay = this.schedule[dateKey] || [];
+            const mastersOnDayMap = this.schedule[dateKey] || {};
             
-            if (mastersOnDay.length === 0) {
+            if (Object.keys(mastersOnDayMap).length === 0) {
                 const emptyMsg = document.createElement('p');
                 emptyMsg.className = 'empty-state';
                 emptyMsg.textContent = 'На этот день смена не назначена';
                 assignedList.appendChild(emptyMsg);
             } else {
-                mastersOnDay.forEach(masterId => {
-                    const master = this.masters.find(m => m.id === parseInt(masterId)); // Safety parsing
+                Object.entries(mastersOnDayMap).forEach(([masterIdStr, type]) => {
+                    const masterId = parseInt(masterIdStr);
+                    const master = this.masters.find(m => m.id === masterId);
                     if (master) {
                         const item = document.createElement('div');
                         item.className = 'assigned-item';
                         if (master.id === this.targetMasterId) {
                             item.classList.add('is-me');
                         }
+                        if (type === 'evening') {
+                            item.classList.add('evening');
+                        }
+                        
+                        let icon = type === 'evening' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+                        
                         item.innerHTML = `
                             <div class="master-avatar">${master.name.charAt(0)}</div>
                             <span>${master.name}</span>
+                            <div class="shift-icon" title="${type === 'evening' ? 'Вечерняя смена' : 'Полная смена'}">
+                                ${icon}
+                            </div>
                         `;
                         assignedList.appendChild(item);
                     }
@@ -520,7 +474,6 @@ class ScheduleMiniApp {
         
         let currentDateStr = null;
         if (this.selectedDay) {
-            // Это уже было правильно, но для единообразия и надежности
             currentDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
         }
 
@@ -529,12 +482,6 @@ class ScheduleMiniApp {
             const isDayOff = currentDateStr ? this.checkIfDayOff(master.id, currentDateStr) : false;
             return { ...master, shiftCount, isDayOff };
         }).sort((a, b) => {
-            // Если режим "Мои смены", поднимаем меня наверх
-            if (this.filterMode === 'my' && this.targetMasterId) {
-                if (a.id === this.targetMasterId) return -1;
-                if (b.id === this.targetMasterId) return 1;
-            }
-
             if (this.selectedDay) {
                 if (a.isDayOff !== b.isDayOff) return a.isDayOff ? 1 : -1;
             }
@@ -542,8 +489,8 @@ class ScheduleMiniApp {
         });
         
         mastersWithStats.forEach(master => {
-            const isSelected = this.selectedMasters.has(master.id);
-            const masterEl = this.createMasterElement(master, isSelected);
+            const shiftType = this.selectedMasters.get(master.id); // undefined, 'full', 'evening'
+            const masterEl = this.createMasterElement(master, shiftType);
             mastersListEl.appendChild(masterEl);
         });
         
@@ -559,7 +506,7 @@ class ScheduleMiniApp {
         return this.daysOff.some(d => d.masterId === masterId && d.date === dateStr);
     }
     
-    createMasterElement(master, isSelected) {
+    createMasterElement(master, shiftType) {
         const div = document.createElement('div');
         div.className = 'master-item';
         
@@ -567,7 +514,12 @@ class ScheduleMiniApp {
             div.classList.add('is-me-item');
         }
 
-        if (isSelected) div.classList.add('selected');
+        if (shiftType) {
+            div.classList.add('selected');
+            if (shiftType === 'evening') {
+                div.classList.add('evening');
+            }
+        }
         if (master.isDayOff) div.classList.add('day-off');
         
         div.dataset.masterId = master.id;
@@ -613,13 +565,20 @@ class ScheduleMiniApp {
         div.appendChild(avatar);
         div.appendChild(info);
         
+        // Иконка типа смены (если выбран)
+        if (shiftType) {
+             const iconDiv = document.createElement('div');
+             iconDiv.className = 'master-status-icon';
+             iconDiv.innerHTML = shiftType === 'evening' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+             div.appendChild(iconDiv);
+        }
+
         if (master.isDayOff) {
              div.title = "Мастер отметил этот день как выходной";
         }
 
-        // В режиме просмотра клик по мастеру ничего не делает (или можно сделать фильтрацию по клику)
         if (!this.isReadOnly) {
-            div.addEventListener('click', () => this.toggleMasterSelection(master.id));
+            div.addEventListener('click', () => this.cycleMasterShift(master.id));
         }
         
         return div;
@@ -627,15 +586,17 @@ class ScheduleMiniApp {
     
     getMasterShiftCount(masterId) {
         let count = 0;
-        Object.values(this.schedule).forEach(mastersOnDay => {
-            if (mastersOnDay.includes(masterId)) {
+        // Перебор объекта schedule
+        Object.values(this.schedule).forEach(mastersMap => {
+            if (mastersMap[masterId]) {
                 count++;
             }
         });
         return count;
     }
     
-    toggleMasterSelection(masterId) {
+    // Циклическое переключение: None -> Full -> Evening -> None
+    cycleMasterShift(masterId) {
         if (this.isReadOnly) return;
 
         if (!this.selectedDay) {
@@ -643,27 +604,32 @@ class ScheduleMiniApp {
             return;
         }
         
-        // FIX: Используем padStart
         const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
         
         if (!this.schedule[dateKey]) {
-            this.schedule[dateKey] = [];
+            this.schedule[dateKey] = {};
         }
         
-        if (this.selectedMasters.has(masterId)) {
-            this.selectedMasters.delete(masterId);
-            const index = this.schedule[dateKey].indexOf(masterId);
-            if (index > -1) {
-                this.schedule[dateKey].splice(index, 1);
-            }
-            
-            if (this.schedule[dateKey].length === 0) {
-                delete this.schedule[dateKey];
-            }
+        const currentType = this.selectedMasters.get(masterId);
+        let nextType;
+        
+        if (!currentType) {
+            nextType = 'full';
+        } else if (currentType === 'full') {
+            nextType = 'evening';
         } else {
-            this.selectedMasters.add(masterId);
-            if (!this.schedule[dateKey].includes(masterId)) {
-                this.schedule[dateKey].push(masterId);
+            nextType = null; // Remove
+        }
+        
+        if (nextType) {
+            this.selectedMasters.set(masterId, nextType);
+            this.schedule[dateKey][masterId] = nextType;
+        } else {
+            this.selectedMasters.delete(masterId);
+            delete this.schedule[dateKey][masterId];
+            
+            if (Object.keys(this.schedule[dateKey]).length === 0) {
+                delete this.schedule[dateKey];
             }
         }
         
@@ -684,7 +650,6 @@ class ScheduleMiniApp {
         this.showConfirmModal(
             'Очистить смену на выбранный день?',
             () => {
-                // FIX: Используем padStart
                 const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
                 delete this.schedule[dateKey];
                 
