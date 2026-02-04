@@ -1,4 +1,3 @@
-
 class ScheduleMiniApp {
     constructor() {
         this.currentDate = new Date();
@@ -6,10 +5,16 @@ class ScheduleMiniApp {
         this.currentMonth = this.currentDate.getMonth(); // 0-11
         this.selectedDay = null;
         this.masters = [];
-        this.daysOff = []; // Массив выходных: [{masterId, dateString}]
+        this.daysOff = []; 
         this.schedule = {};
         this.selectedMasters = new Set();
-        this.chatId = null; // ID чата, для которого составляется график
+        this.chatId = null;
+        
+        // Новые свойства для View Mode
+        this.mode = 'edit'; // 'edit' or 'view'
+        this.filterMode = 'all'; // 'all' or 'my'
+        this.targetMasterId = null; // ID "меня" для фильтрации
+        this.isReadOnly = false;
         
         this.monthNames = [
             "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -23,22 +28,70 @@ class ScheduleMiniApp {
         try {
             await this.loadDataFromURL();
             
-            // Загружаем тему
             this.loadTheme();
             
-            this.loadFromLocalStorage();
+            // В режиме просмотра загружаем график из полученных данных, а не из localStorage
+            if (this.mode !== 'view') {
+                this.loadFromLocalStorage();
+            }
+            
             this.initUI();
             this.renderCalendar();
             this.renderMastersList();
             this.hideLoading();
             
-            // Добавляем обработчик изменения темы
             document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
+            
+            // Инициализация фильтра
+            this.setupViewFilter();
             
         } catch (error) {
             console.error('Ошибка инициализации:', error);
             this.showNotification('Ошибка загрузки данных', 'error');
         }
+    }
+    
+    setupViewFilter() {
+        if (this.mode === 'view') {
+            document.getElementById('view-toggle').style.display = 'flex';
+            
+            const options = document.querySelectorAll('.toggle-option');
+            const bg = document.querySelector('.toggle-bg');
+            
+            options.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    // Update UI
+                    options.forEach(o => o.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    // Move background
+                    const index = Array.from(options).indexOf(e.target);
+                    bg.style.transform = `translateX(${index * 100}%)`;
+                    
+                    // Apply filter
+                    this.filterMode = e.target.dataset.filter;
+                    this.applyFilter();
+                });
+            });
+            
+            // Если передан параметр filter=my в URL, активируем его
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('filter') === 'my' && this.targetMasterId) {
+                // Trigger click on 'my' option
+                const myOption = document.querySelector('.toggle-option[data-filter="my"]');
+                if (myOption) myOption.click();
+            }
+        }
+    }
+    
+    applyFilter() {
+        this.renderCalendar();
+        // В режиме фильтрации сбрасываем выбор дня, чтобы не путать
+        this.selectedDay = null;
+        this.selectedMasters.clear();
+        this.updateDayInfo();
+        this.renderMastersList();
+        this.updateStats();
     }
     
     loadTheme() {
@@ -72,9 +125,21 @@ class ScheduleMiniApp {
             const urlParams = new URLSearchParams(window.location.search);
             const dataParam = urlParams.get('data');
             
-            // ВАЖНО: Сохраняем ID чата из URL
             this.chatId = urlParams.get('chat');
-            console.log("Target Chat ID:", this.chatId);
+            
+            // Проверка режима
+            const modeParam = urlParams.get('mode');
+            if (modeParam === 'view') {
+                this.mode = 'view';
+                this.isReadOnly = true;
+                document.body.classList.add('read-only');
+                // Скрываем контролы редактирования
+                document.getElementById('calendar-controls').style.display = 'none';
+                document.getElementById('masters-hint').textContent = 'Просмотр графика';
+                document.getElementById('prev-month').style.display = 'none';
+                document.getElementById('next-month').style.display = 'none';
+                document.getElementById('stat-selected-container').style.display = 'none';
+            }
             
             if (!dataParam) {
                 throw new Error('No data parameter found');
@@ -84,30 +149,41 @@ class ScheduleMiniApp {
             const jsonStr = atob(decodedParam);
             const parsedData = JSON.parse(jsonStr);
             
-            // Проверяем формат данных (новый или старый)
-            if (Array.isArray(parsedData)) {
-                // Старый формат
-                this.masters = parsedData.map(master => ({
-                    id: master[0],
-                    name: master[1]
-                }));
-                this.daysOff = [];
-            } else if (parsedData.m) {
-                // Новый формат
+            // Парсинг данных
+            if (parsedData.m) {
                 this.masters = parsedData.m.map(master => ({
                     id: master[0],
                     name: master[1]
                 }));
                 
-                // d: [[master_id, "YYYY-MM-DD"], ...]
                 if (parsedData.d) {
                     this.daysOff = parsedData.d.map(item => ({
                         masterId: item[0],
                         date: item[1]
                     }));
-                } else {
-                    this.daysOff = [];
                 }
+                
+                // Если передали расписание (режим просмотра)
+                if (parsedData.s) {
+                    this.schedule = parsedData.s;
+                }
+                
+                // Если передали год/месяц, устанавливаем их
+                if (parsedData.year && parsedData.month) {
+                    this.currentYear = parsedData.year;
+                    this.currentMonth = parsedData.month - 1; // JS months are 0-indexed
+                }
+                
+                // Если передали ID текущего мастера (для подсветки)
+                if (parsedData.target_master_id) {
+                    this.targetMasterId = parsedData.target_master_id;
+                }
+            } else if (Array.isArray(parsedData)) {
+                // Старый формат (только мастера)
+                this.masters = parsedData.map(master => ({
+                    id: master[0],
+                    name: master[1]
+                }));
             }
             
         } catch (error) {
@@ -130,6 +206,7 @@ class ScheduleMiniApp {
     }
     
     saveToLocalStorage() {
+        if (this.isReadOnly) return; // Не сохраняем в режиме просмотра
         try {
             const key = `schedule_${this.currentYear}_${this.currentMonth + 1}`;
             localStorage.setItem(key, JSON.stringify(this.schedule));
@@ -146,20 +223,19 @@ class ScheduleMiniApp {
     }
     
     setupEventListeners() {
-        // Навигация по месяцам
-        document.getElementById('prev-month').addEventListener('click', () => this.changeMonth(-1));
-        document.getElementById('next-month').addEventListener('click', () => this.changeMonth(1));
-        
-        // Управление сменами
-        document.getElementById('clear-day').addEventListener('click', () => this.clearCurrentDay());
-        document.getElementById('send-all').addEventListener('click', () => this.exportToJson());
+        // Навигация (отключена в view mode визуально, но логика осталась)
+        if (!this.isReadOnly) {
+            document.getElementById('prev-month').addEventListener('click', () => this.changeMonth(-1));
+            document.getElementById('next-month').addEventListener('click', () => this.changeMonth(1));
+            document.getElementById('clear-day').addEventListener('click', () => this.clearCurrentDay());
+            document.getElementById('send-all').addEventListener('click', () => this.exportToJson());
+        }
         
         // Модальные окна
         document.getElementById('modal-close').addEventListener('click', () => this.hideModal());
         document.getElementById('confirm-cancel').addEventListener('click', () => this.hideModal());
         document.getElementById('confirm-ok').addEventListener('click', () => this.confirmAction());
         
-        // Окно экспорта
         document.getElementById('export-close').addEventListener('click', () => this.hideExportModal());
         document.getElementById('close-export').addEventListener('click', () => this.hideExportModal());
         document.getElementById('copy-json').addEventListener('click', () => this.copyJsonToClipboard());
@@ -192,6 +268,8 @@ class ScheduleMiniApp {
     }
     
     changeMonth(delta) {
+        if (this.isReadOnly) return;
+        
         this.saveToLocalStorage();
         
         this.currentMonth += delta;
@@ -238,7 +316,24 @@ class ScheduleMiniApp {
         
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${day}`;
-            const mastersOnDay = this.schedule[dateKey] || [];
+            let mastersOnDay = this.schedule[dateKey] || [];
+            
+            // Filter logic for View Mode
+            let isDimmed = false;
+            let displayMasters = mastersOnDay;
+            let isHighlighted = false;
+
+            if (this.filterMode === 'my' && this.targetMasterId) {
+                const hasMe = mastersOnDay.includes(this.targetMasterId);
+                if (!hasMe) {
+                    isDimmed = true; // Dim days where I don't work
+                } else {
+                    isHighlighted = true;
+                    // Optionally filter indicators to only show "Me" or show all but highlight me
+                    // Let's show all but mark the day clearly
+                }
+            }
+
             const isToday = isCurrentMonth && day === today.getDate();
             const isWeekend = this.isWeekend(day);
             const isSelected = this.selectedDay === day;
@@ -248,7 +343,10 @@ class ScheduleMiniApp {
                 isWeekend,
                 isSelected,
                 hasShift: mastersOnDay.length > 0,
-                mastersCount: mastersOnDay.length
+                mastersCount: mastersOnDay.length,
+                mastersIds: mastersOnDay, // Pass IDs to check for specific master
+                isDimmed,
+                isHighlighted
             }));
         }
     }
@@ -268,6 +366,8 @@ class ScheduleMiniApp {
         if (options.isWeekend) div.classList.add('day-weekend');
         if (options.isSelected) div.classList.add('day-selected');
         if (options.hasShift) div.classList.add('day-shift');
+        if (options.isDimmed) div.classList.add('day-dimmed');
+        if (options.isHighlighted) div.classList.add('day-highlight');
         
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
@@ -282,6 +382,15 @@ class ScheduleMiniApp {
         for (let i = 0; i < indicatorsCount; i++) {
             const dot = document.createElement('div');
             dot.className = 'master-dot';
+            
+            // Highlight my dot
+            // Note: simple logic, just coloring dots. 
+            // Better logic would be to map dots to masters, but we just show count mostly.
+            // If "Me" is working, make the first dot distinctive
+            if (this.targetMasterId && options.mastersIds.includes(this.targetMasterId) && i === 0) {
+                dot.classList.add('my-dot');
+            }
+            
             mastersIndicators.appendChild(dot);
         }
         
@@ -303,6 +412,8 @@ class ScheduleMiniApp {
             div.appendChild(mastersIndicators);
         }
         
+        // В режиме просмотра клик просто показывает инфо, без "выбора" для редактирования
+        // Но используем ту же функцию selectDay, просто внутри нее проверим mode
         div.addEventListener('click', () => this.selectDay(day));
         
         return div;
@@ -322,8 +433,12 @@ class ScheduleMiniApp {
         
         this.selectedMasters = new Set(mastersOnDay);
         
+        // В режиме View перерисовываем календарь, чтобы подсветить выбранный день
+        // Но в режиме Edit перерисовка нужна для логики выбора
         this.renderCalendar();
         this.updateDayInfo();
+        
+        // В режиме View список мастеров не обновляем "для выбора", а просто показываем
         this.renderMastersList();
         this.updateStats();
         
@@ -364,6 +479,9 @@ class ScheduleMiniApp {
                     if (master) {
                         const item = document.createElement('div');
                         item.className = 'assigned-item';
+                        if (masterId === this.targetMasterId) {
+                            item.classList.add('is-me');
+                        }
                         item.innerHTML = `
                             <div class="master-avatar">${master.name.charAt(0)}</div>
                             <span>${master.name}</span>
@@ -420,6 +538,10 @@ class ScheduleMiniApp {
         const div = document.createElement('div');
         div.className = 'master-item';
         
+        if (master.id === this.targetMasterId) {
+            div.classList.add('is-me-item');
+        }
+
         if (isSelected) div.classList.add('selected');
         if (master.isDayOff) div.classList.add('day-off');
         
@@ -470,7 +592,10 @@ class ScheduleMiniApp {
              div.title = "Мастер отметил этот день как выходной";
         }
 
-        div.addEventListener('click', () => this.toggleMasterSelection(master.id));
+        // В режиме просмотра клик по мастеру ничего не делает (или можно сделать фильтрацию по клику)
+        if (!this.isReadOnly) {
+            div.addEventListener('click', () => this.toggleMasterSelection(master.id));
+        }
         
         return div;
     }
@@ -486,6 +611,8 @@ class ScheduleMiniApp {
     }
     
     toggleMasterSelection(masterId) {
+        if (this.isReadOnly) return;
+
         if (!this.selectedDay) {
             this.showNotification('Сначала выберите день из календаря', 'error');
             return;
@@ -556,7 +683,7 @@ class ScheduleMiniApp {
         const dataToExport = {
             month: this.currentMonth + 1,
             year: this.currentYear,
-            chat_id: this.chatId, // Добавляем ID чата в экспорт
+            chat_id: this.chatId, 
             schedule: this.schedule
         };
         
