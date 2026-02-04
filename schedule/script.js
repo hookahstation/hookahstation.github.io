@@ -9,6 +9,7 @@ class ScheduleMiniApp {
         this.daysOff = []; // Массив выходных: [{masterId, dateString}]
         this.schedule = {};
         this.selectedMasters = new Set();
+        this.chatId = null; // ID чата, для которого составляется график
         
         this.monthNames = [
             "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -71,6 +72,9 @@ class ScheduleMiniApp {
             const urlParams = new URLSearchParams(window.location.search);
             const dataParam = urlParams.get('data');
             
+            // Сохраняем ID чата из URL
+            this.chatId = urlParams.get('chat');
+            
             if (!dataParam) {
                 throw new Error('No data parameter found');
             }
@@ -80,9 +84,6 @@ class ScheduleMiniApp {
             const parsedData = JSON.parse(jsonStr);
             
             // Проверяем формат данных (новый или старый)
-            // Новый формат: { m: [...], d: [...] }
-            // Старый формат: [[id, name], ...] (просто массив мастеров)
-            
             if (Array.isArray(parsedData)) {
                 // Старый формат
                 this.masters = parsedData.map(master => ({
@@ -108,7 +109,7 @@ class ScheduleMiniApp {
                 }
             }
             
-            console.log(`Загружено ${this.masters.length} мастеров и ${this.daysOff.length} выходных`);
+            console.log(`Загружено ${this.masters.length} мастеров и ${this.daysOff.length} выходных. Chat ID: ${this.chatId}`);
             
         } catch (error) {
             console.error('Ошибка загрузки данных:', error);
@@ -233,7 +234,6 @@ class ScheduleMiniApp {
         let firstDayOfWeek = firstDay.getDay();
         if (firstDayOfWeek === 0) firstDayOfWeek = 7;
         
-        // Пустые дни в начале месяца
         for (let i = 1; i < firstDayOfWeek; i++) {
             calendarEl.appendChild(this.createEmptyDay());
         }
@@ -241,18 +241,12 @@ class ScheduleMiniApp {
         const today = new Date();
         const isCurrentMonth = today.getFullYear() === this.currentYear && today.getMonth() === this.currentMonth;
         
-        // Дни месяца
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${day}`;
             const mastersOnDay = this.schedule[dateKey] || [];
             const isToday = isCurrentMonth && day === today.getDate();
             const isWeekend = this.isWeekend(day);
             const isSelected = this.selectedDay === day;
-            
-            // Форматируем дату для проверки выходных: YYYY-MM-DD (с ведущими нулями)
-            const checkDate = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            // Проверяем, есть ли хоть один мастер с выходным в этот день
-            // Но мы пока не отображаем это на календаре, только в списке мастеров
             
             calendarEl.appendChild(this.createDayElement(day, {
                 isToday,
@@ -322,7 +316,6 @@ class ScheduleMiniApp {
     isWeekend(day) {
         const date = new Date(this.currentYear, this.currentMonth, day);
         const dayOfWeek = date.getDay();
-        // Пятница (5) и Суббота (6) - выходные
         return dayOfWeek === 5 || dayOfWeek === 6;
     }
     
@@ -339,7 +332,6 @@ class ScheduleMiniApp {
         this.renderMastersList();
         this.updateStats();
         
-        // Плавная прокрутка к информации о дне на мобильных устройствах
         if (window.innerWidth < 768) {
             setTimeout(() => {
                 document.getElementById('day-info').scrollIntoView({ 
@@ -395,20 +387,16 @@ class ScheduleMiniApp {
         const mastersListEl = document.getElementById('masters-list');
         mastersListEl.innerHTML = '';
         
-        // Форматируем текущую выбранную дату для проверки выходных
         let currentDateStr = null;
         if (this.selectedDay) {
             currentDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
         }
 
-        // Добавляем мастеров с информацией о количестве смен и выходных
         const mastersWithStats = this.masters.map(master => {
             const shiftCount = this.getMasterShiftCount(master.id);
-            // Проверяем, есть ли у мастера выходной в выбранный день
             const isDayOff = currentDateStr ? this.checkIfDayOff(master.id, currentDateStr) : false;
             return { ...master, shiftCount, isDayOff };
         }).sort((a, b) => {
-            // Сортировка: сначала те, у кого не выходной (если день выбран), потом по количеству смен
             if (this.selectedDay) {
                 if (a.isDayOff !== b.isDayOff) return a.isDayOff ? 1 : -1;
             }
@@ -438,7 +426,7 @@ class ScheduleMiniApp {
         div.className = 'master-item';
         
         if (isSelected) div.classList.add('selected');
-        if (master.isDayOff) div.classList.add('day-off'); // Добавляем класс выходного
+        if (master.isDayOff) div.classList.add('day-off');
         
         div.dataset.masterId = master.id;
         
@@ -460,7 +448,6 @@ class ScheduleMiniApp {
         
         nameContainer.appendChild(name);
         
-        // Если выходной, добавляем значок
         if (master.isDayOff) {
             const dayOffBadge = document.createElement('span');
             dayOffBadge.textContent = '🏖️';
@@ -484,7 +471,6 @@ class ScheduleMiniApp {
         div.appendChild(avatar);
         div.appendChild(info);
         
-        // Если выходной, добавляем визуальную подсказку в название или стиль, но клик все равно работает (админ может переопределить)
         if (master.isDayOff) {
              div.title = "Мастер отметил этот день как выходной";
         }
@@ -517,19 +503,16 @@ class ScheduleMiniApp {
         }
         
         if (this.selectedMasters.has(masterId)) {
-            // Удаляем мастера из смены
             this.selectedMasters.delete(masterId);
             const index = this.schedule[dateKey].indexOf(masterId);
             if (index > -1) {
                 this.schedule[dateKey].splice(index, 1);
             }
             
-            // Если мастеров не осталось, удаляем день из расписания
             if (this.schedule[dateKey].length === 0) {
                 delete this.schedule[dateKey];
             }
         } else {
-            // Добавляем мастера в смену
             this.selectedMasters.add(masterId);
             if (!this.schedule[dateKey].includes(masterId)) {
                 this.schedule[dateKey].push(masterId);
@@ -541,7 +524,6 @@ class ScheduleMiniApp {
         this.renderMastersList();
         this.updateStats();
         
-        // Автосохранение
         this.saveToLocalStorage();
     }
     
@@ -579,19 +561,18 @@ class ScheduleMiniApp {
         const dataToExport = {
             month: this.currentMonth + 1,
             year: this.currentYear,
+            chat_id: this.chatId, // Добавляем ID чата в экспорт
             schedule: this.schedule
         };
         
         const jsonStr = JSON.stringify(dataToExport, null, 2);
         
-        // Показываем модальное окно экспорта
         const exportModal = document.getElementById('export-modal');
         const exportTextarea = document.getElementById('export-json');
         
         exportTextarea.value = jsonStr;
         exportModal.style.display = 'flex';
         
-        // Автоматически выделяем текст для удобства копирования
         setTimeout(() => {
             exportTextarea.select();
         }, 100);
@@ -653,9 +634,7 @@ class ScheduleMiniApp {
     }
 }
 
-// Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
-    // Добавляем обработчик для закрытия модальных окон по клику вне их
     document.addEventListener('click', (e) => {
         const modalOverlays = document.querySelectorAll('.modal-overlay');
         modalOverlays.forEach(modal => {
