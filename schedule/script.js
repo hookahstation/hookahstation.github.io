@@ -184,7 +184,8 @@ class ScheduleMiniApp {
                 
                 // Если передали ID текущего мастера (для подсветки)
                 if (parsedData.target_master_id) {
-                    this.targetMasterId = parsedData.target_master_id;
+                    // FIX: Приводим к числу, так как ID мастеров - это целые числа
+                    this.targetMasterId = parseInt(parsedData.target_master_id, 10);
                 }
             } else if (Array.isArray(parsedData)) {
                 // Старый формат (только мастера)
@@ -334,11 +335,13 @@ class ScheduleMiniApp {
             let isHighlighted = false;
 
             if (this.filterMode === 'my' && this.targetMasterId) {
-                const hasMe = mastersOnDay.includes(this.targetMasterId);
+                // ВАЖНО: Приводим ID к числу для сравнения
+                const hasMe = mastersOnDay.some(id => parseInt(id) === this.targetMasterId);
+                
                 if (!hasMe) {
-                    isDimmed = true; // Dim days where I don't work
+                    isDimmed = true; // Скрываем (диммим) дни, где меня нет
                 } else {
-                    isHighlighted = true;
+                    isHighlighted = true; // Подсвечиваем мои дни
                 }
             }
 
@@ -374,6 +377,8 @@ class ScheduleMiniApp {
         if (options.isWeekend) div.classList.add('day-weekend');
         if (options.isSelected) div.classList.add('day-selected');
         if (options.hasShift) div.classList.add('day-shift');
+        
+        // CSS классы для фильтрации
         if (options.isDimmed) div.classList.add('day-dimmed');
         if (options.isHighlighted) div.classList.add('day-highlight');
         
@@ -384,40 +389,48 @@ class ScheduleMiniApp {
         const mastersIndicators = document.createElement('div');
         mastersIndicators.className = 'day-masters';
         
-        const maxIndicators = 3;
-        const indicatorsCount = Math.min(options.mastersCount, maxIndicators);
-        
-        for (let i = 0; i < indicatorsCount; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'master-dot';
+        // В режиме "Мои смены" показываем только мою точку или вообще ничего лишнего
+        if (this.filterMode === 'my' && this.targetMasterId) {
+             // Если это подсвеченный день (значит я работаю)
+             if (options.isHighlighted) {
+                 const dot = document.createElement('div');
+                 dot.className = 'master-dot my-dot';
+                 mastersIndicators.appendChild(dot);
+             }
+        } else {
+            // Стандартный режим - показываем до 3 точек
+            const maxIndicators = 3;
+            const indicatorsCount = Math.min(options.mastersCount, maxIndicators);
             
-            // Highlight my dot
-            if (this.targetMasterId && options.mastersIds.includes(this.targetMasterId) && i === 0) {
-                dot.classList.add('my-dot');
+            for (let i = 0; i < indicatorsCount; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'master-dot';
+                mastersIndicators.appendChild(dot);
             }
             
-            mastersIndicators.appendChild(dot);
-        }
-        
-        if (options.mastersCount > maxIndicators) {
-            const more = document.createElement('div');
-            more.className = 'master-more';
-            more.textContent = `+${options.mastersCount - maxIndicators}`;
-            more.style.cssText = `
-                font-size: 9px;
-                color: var(--success-color);
-                font-weight: bold;
-                margin-left: 2px;
-            `;
-            mastersIndicators.appendChild(more);
+            if (options.mastersCount > maxIndicators) {
+                const more = document.createElement('div');
+                more.className = 'master-more';
+                more.textContent = `+${options.mastersCount - maxIndicators}`;
+                more.style.cssText = `
+                    font-size: 9px;
+                    color: var(--success-color);
+                    font-weight: bold;
+                    margin-left: 2px;
+                `;
+                mastersIndicators.appendChild(more);
+            }
         }
         
         div.appendChild(dayNumber);
-        if (options.mastersCount > 0) {
+        
+        // Добавляем индикаторы только если есть смены и мы не задимлены
+        if (options.mastersCount > 0 && !options.isDimmed) {
             div.appendChild(mastersIndicators);
         }
         
         // В режиме просмотра клик просто показывает инфо
+        // Если день dimmed, pointer-events: none в CSS уже отключит клик
         div.addEventListener('click', () => this.selectDay(day));
         
         return div;
@@ -480,11 +493,11 @@ class ScheduleMiniApp {
                 assignedList.appendChild(emptyMsg);
             } else {
                 mastersOnDay.forEach(masterId => {
-                    const master = this.masters.find(m => m.id === masterId);
+                    const master = this.masters.find(m => m.id === parseInt(masterId)); // Safety parsing
                     if (master) {
                         const item = document.createElement('div');
                         item.className = 'assigned-item';
-                        if (masterId === this.targetMasterId) {
+                        if (master.id === this.targetMasterId) {
                             item.classList.add('is-me');
                         }
                         item.innerHTML = `
@@ -516,6 +529,12 @@ class ScheduleMiniApp {
             const isDayOff = currentDateStr ? this.checkIfDayOff(master.id, currentDateStr) : false;
             return { ...master, shiftCount, isDayOff };
         }).sort((a, b) => {
+            // Если режим "Мои смены", поднимаем меня наверх
+            if (this.filterMode === 'my' && this.targetMasterId) {
+                if (a.id === this.targetMasterId) return -1;
+                if (b.id === this.targetMasterId) return 1;
+            }
+
             if (this.selectedDay) {
                 if (a.isDayOff !== b.isDayOff) return a.isDayOff ? 1 : -1;
             }
