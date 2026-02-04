@@ -72,8 +72,9 @@ class ScheduleMiniApp {
             const urlParams = new URLSearchParams(window.location.search);
             const dataParam = urlParams.get('data');
             
-            // Сохраняем ID чата из URL
+            // ВАЖНО: Сохраняем ID чата из URL
             this.chatId = urlParams.get('chat');
+            console.log("Target Chat ID:", this.chatId);
             
             if (!dataParam) {
                 throw new Error('No data parameter found');
@@ -109,8 +110,6 @@ class ScheduleMiniApp {
                 }
             }
             
-            console.log(`Загружено ${this.masters.length} мастеров и ${this.daysOff.length} выходных. Chat ID: ${this.chatId}`);
-            
         } catch (error) {
             console.error('Ошибка загрузки данных:', error);
             throw new Error('Не удалось загрузить данные мастеров');
@@ -124,7 +123,6 @@ class ScheduleMiniApp {
             
             if (savedData) {
                 this.schedule = JSON.parse(savedData);
-                console.log(`Загружено расписание из localStorage:`, this.schedule);
             }
         } catch (error) {
             console.error('Ошибка загрузки из localStorage:', error);
@@ -135,7 +133,6 @@ class ScheduleMiniApp {
         try {
             const key = `schedule_${this.currentYear}_${this.currentMonth + 1}`;
             localStorage.setItem(key, JSON.stringify(this.schedule));
-            
             this.showSaveNotification();
         } catch (error) {
             console.error('Ошибка сохранения в localStorage:', error);
@@ -171,8 +168,6 @@ class ScheduleMiniApp {
     hideLoading() {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('main-ui').style.display = 'flex';
-        
-        // Плавное появление контента
         setTimeout(() => {
             document.getElementById('main-ui').style.opacity = '1';
         }, 50);
