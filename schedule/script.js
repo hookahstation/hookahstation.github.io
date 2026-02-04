@@ -1,3 +1,4 @@
+
 class ScheduleMiniApp {
     constructor() {
         this.currentDate = new Date();
@@ -5,6 +6,7 @@ class ScheduleMiniApp {
         this.currentMonth = this.currentDate.getMonth(); // 0-11
         this.selectedDay = null;
         this.masters = [];
+        this.daysOff = []; // Массив выходных: [{masterId, dateString}]
         this.schedule = {};
         this.selectedMasters = new Set();
         
@@ -75,14 +77,38 @@ class ScheduleMiniApp {
             
             const decodedParam = decodeURIComponent(dataParam);
             const jsonStr = atob(decodedParam);
-            const mastersData = JSON.parse(jsonStr);
+            const parsedData = JSON.parse(jsonStr);
             
-            this.masters = mastersData.map(master => ({
-                id: master[0],
-                name: master[1]
-            }));
+            // Проверяем формат данных (новый или старый)
+            // Новый формат: { m: [...], d: [...] }
+            // Старый формат: [[id, name], ...] (просто массив мастеров)
             
-            console.log(`Загружено ${this.masters.length} мастеров`);
+            if (Array.isArray(parsedData)) {
+                // Старый формат
+                this.masters = parsedData.map(master => ({
+                    id: master[0],
+                    name: master[1]
+                }));
+                this.daysOff = [];
+            } else if (parsedData.m) {
+                // Новый формат
+                this.masters = parsedData.m.map(master => ({
+                    id: master[0],
+                    name: master[1]
+                }));
+                
+                // d: [[master_id, "YYYY-MM-DD"], ...]
+                if (parsedData.d) {
+                    this.daysOff = parsedData.d.map(item => ({
+                        masterId: item[0],
+                        date: item[1]
+                    }));
+                } else {
+                    this.daysOff = [];
+                }
+            }
+            
+            console.log(`Загружено ${this.masters.length} мастеров и ${this.daysOff.length} выходных`);
             
         } catch (error) {
             console.error('Ошибка загрузки данных:', error);
@@ -222,6 +248,11 @@ class ScheduleMiniApp {
             const isToday = isCurrentMonth && day === today.getDate();
             const isWeekend = this.isWeekend(day);
             const isSelected = this.selectedDay === day;
+            
+            // Форматируем дату для проверки выходных: YYYY-MM-DD (с ведущими нулями)
+            const checkDate = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            // Проверяем, есть ли хоть один мастер с выходным в этот день
+            // Но мы пока не отображаем это на календаре, только в списке мастеров
             
             calendarEl.appendChild(this.createDayElement(day, {
                 isToday,
@@ -364,11 +395,25 @@ class ScheduleMiniApp {
         const mastersListEl = document.getElementById('masters-list');
         mastersListEl.innerHTML = '';
         
-        // Добавляем мастеров с информацией о количестве смен
+        // Форматируем текущую выбранную дату для проверки выходных
+        let currentDateStr = null;
+        if (this.selectedDay) {
+            currentDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
+        }
+
+        // Добавляем мастеров с информацией о количестве смен и выходных
         const mastersWithStats = this.masters.map(master => {
             const shiftCount = this.getMasterShiftCount(master.id);
-            return { ...master, shiftCount };
-        }).sort((a, b) => b.shiftCount - a.shiftCount);
+            // Проверяем, есть ли у мастера выходной в выбранный день
+            const isDayOff = currentDateStr ? this.checkIfDayOff(master.id, currentDateStr) : false;
+            return { ...master, shiftCount, isDayOff };
+        }).sort((a, b) => {
+            // Сортировка: сначала те, у кого не выходной (если день выбран), потом по количеству смен
+            if (this.selectedDay) {
+                if (a.isDayOff !== b.isDayOff) return a.isDayOff ? 1 : -1;
+            }
+            return b.shiftCount - a.shiftCount;
+        });
         
         mastersWithStats.forEach(master => {
             const isSelected = this.selectedMasters.has(master.id);
@@ -384,10 +429,17 @@ class ScheduleMiniApp {
         }
     }
     
+    checkIfDayOff(masterId, dateStr) {
+        return this.daysOff.some(d => d.masterId === masterId && d.date === dateStr);
+    }
+    
     createMasterElement(master, isSelected) {
         const div = document.createElement('div');
         div.className = 'master-item';
+        
         if (isSelected) div.classList.add('selected');
+        if (master.isDayOff) div.classList.add('day-off'); // Добавляем класс выходного
+        
         div.dataset.masterId = master.id;
         
         const avatar = document.createElement('div');
@@ -397,9 +449,25 @@ class ScheduleMiniApp {
         const info = document.createElement('div');
         info.className = 'master-info';
         
-        const name = document.createElement('div');
+        const nameContainer = document.createElement('div');
+        nameContainer.style.display = 'flex';
+        nameContainer.style.alignItems = 'center';
+        nameContainer.style.gap = '6px';
+        
+        const name = document.createElement('span');
         name.className = 'master-name';
         name.textContent = master.name;
+        
+        nameContainer.appendChild(name);
+        
+        // Если выходной, добавляем значок
+        if (master.isDayOff) {
+            const dayOffBadge = document.createElement('span');
+            dayOffBadge.textContent = '🏖️';
+            dayOffBadge.title = 'Выходной';
+            dayOffBadge.style.fontSize = '0.9rem';
+            nameContainer.appendChild(dayOffBadge);
+        }
         
         const stats = document.createElement('div');
         stats.className = 'master-stats';
@@ -410,12 +478,17 @@ class ScheduleMiniApp {
         shifts.title = `Смен в этом месяце: ${master.shiftCount}`;
         
         stats.appendChild(shifts);
-        info.appendChild(name);
+        info.appendChild(nameContainer);
         info.appendChild(stats);
         
         div.appendChild(avatar);
         div.appendChild(info);
         
+        // Если выходной, добавляем визуальную подсказку в название или стиль, но клик все равно работает (админ может переопределить)
+        if (master.isDayOff) {
+             div.title = "Мастер отметил этот день как выходной";
+        }
+
         div.addEventListener('click', () => this.toggleMasterSelection(master.id));
         
         return div;
