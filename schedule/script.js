@@ -145,8 +145,16 @@ class ScheduleMiniApp {
                 throw new Error('No data parameter found');
             }
             
-            const decodedParam = decodeURIComponent(dataParam);
-            const jsonStr = atob(decodedParam);
+            // FIX: Восстанавливаем Base64 из URL-safe формата (заменяем - на +, _ на /)
+            let base64 = dataParam.replace(/-/g, '+').replace(/_/g, '/');
+            // Добавляем padding, если нужно
+            while (base64.length % 4) {
+                base64 += '=';
+            }
+
+            // Декодируем стандартный Base64
+            // Поскольку Python теперь использует ensure_ascii=True, результат atob будет чистым JSON
+            const jsonStr = atob(base64);
             const parsedData = JSON.parse(jsonStr);
             
             // Парсинг данных
