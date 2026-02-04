@@ -323,7 +323,9 @@ class ScheduleMiniApp {
         const isCurrentMonth = today.getFullYear() === this.currentYear && today.getMonth() === this.currentMonth;
         
         for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${day}`;
+            // FIX: Форматируем дату с ведущими нулями (YYYY-MM-DD), чтобы совпадало с ключами из Python
+            const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
             let mastersOnDay = this.schedule[dateKey] || [];
             
             // Filter logic for View Mode
@@ -337,8 +339,6 @@ class ScheduleMiniApp {
                     isDimmed = true; // Dim days where I don't work
                 } else {
                     isHighlighted = true;
-                    // Optionally filter indicators to only show "Me" or show all but highlight me
-                    // Let's show all but mark the day clearly
                 }
             }
 
@@ -392,9 +392,6 @@ class ScheduleMiniApp {
             dot.className = 'master-dot';
             
             // Highlight my dot
-            // Note: simple logic, just coloring dots. 
-            // Better logic would be to map dots to masters, but we just show count mostly.
-            // If "Me" is working, make the first dot distinctive
             if (this.targetMasterId && options.mastersIds.includes(this.targetMasterId) && i === 0) {
                 dot.classList.add('my-dot');
             }
@@ -420,8 +417,7 @@ class ScheduleMiniApp {
             div.appendChild(mastersIndicators);
         }
         
-        // В режиме просмотра клик просто показывает инфо, без "выбора" для редактирования
-        // Но используем ту же функцию selectDay, просто внутри нее проверим mode
+        // В режиме просмотра клик просто показывает инфо
         div.addEventListener('click', () => this.selectDay(day));
         
         return div;
@@ -436,13 +432,13 @@ class ScheduleMiniApp {
     selectDay(day) {
         this.selectedDay = day;
         
-        const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${day}`;
+        // FIX: Используем padStart для корректного ключа даты
+        const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const mastersOnDay = this.schedule[dateKey] || [];
         
         this.selectedMasters = new Set(mastersOnDay);
         
         // В режиме View перерисовываем календарь, чтобы подсветить выбранный день
-        // Но в режиме Edit перерисовка нужна для логики выбора
         this.renderCalendar();
         this.updateDayInfo();
         
@@ -473,7 +469,8 @@ class ScheduleMiniApp {
             
             assignedList.innerHTML = '';
             
-            const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${this.selectedDay}`;
+            // FIX: Используем padStart
+            const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
             const mastersOnDay = this.schedule[dateKey] || [];
             
             if (mastersOnDay.length === 0) {
@@ -510,6 +507,7 @@ class ScheduleMiniApp {
         
         let currentDateStr = null;
         if (this.selectedDay) {
+            // Это уже было правильно, но для единообразия и надежности
             currentDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
         }
 
@@ -626,7 +624,8 @@ class ScheduleMiniApp {
             return;
         }
         
-        const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${this.selectedDay}`;
+        // FIX: Используем padStart
+        const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
         
         if (!this.schedule[dateKey]) {
             this.schedule[dateKey] = [];
@@ -666,7 +665,8 @@ class ScheduleMiniApp {
         this.showConfirmModal(
             'Очистить смену на выбранный день?',
             () => {
-                const dateKey = `${this.currentYear}-${this.currentMonth + 1}-${this.selectedDay}`;
+                // FIX: Используем padStart
+                const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
                 delete this.schedule[dateKey];
                 
                 this.selectedMasters.clear();
