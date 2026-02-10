@@ -16,6 +16,9 @@ class ScheduleMiniApp {
         this.targetMasterId = null; // ID "меня" для фильтрации (оставляем только для подсветки в списке)
         this.isReadOnly = false;
         
+        // Новое свойство для мероприятий
+        this.events = {}; // { "YYYY-MM-DD": "описание мероприятия" }
+        
         this.monthNames = [
             "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
             "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
@@ -126,7 +129,15 @@ class ScheduleMiniApp {
                 
                 // Если передали расписание (режим просмотра)
                 if (parsedData.s) {
-                    this.schedule = this.convertLegacySchedule(parsedData.s);
+                    // Новый формат с мероприятиями
+                    const { schedule: newSchedule, events: newEvents } = this.parseScheduleData(parsedData.s);
+                    this.schedule = newSchedule;
+                    this.events = newEvents || {};
+                }
+                
+                // Если передали мероприятия отдельно (старый способ)
+                if (parsedData.e) {
+                    this.events = parsedData.e;
                 }
                 
                 // Если передали год/месяц, устанавливаем их
@@ -153,6 +164,35 @@ class ScheduleMiniApp {
         }
     }
     
+    // Парсим данные расписания, извлекаем смены и мероприятия
+    parseScheduleData(scheduleData) {
+        const schedule = {};
+        const events = {};
+        
+        for (const [date, dayData] of Object.entries(scheduleData)) {
+            if (typeof dayData === 'object' && dayData !== null) {
+                // Новый формат с мероприятиями
+                if (dayData.shifts) {
+                    schedule[date] = dayData.shifts;
+                } else {
+                    schedule[date] = dayData;
+                }
+                
+                if (dayData.event) {
+                    events[date] = dayData.event;
+                }
+            } else if (Array.isArray(dayData)) {
+                // Старый формат (только список ID мастеров)
+                schedule[date] = {};
+                dayData.forEach(id => {
+                    schedule[date][id] = 'full';
+                });
+            }
+        }
+        
+        return { schedule, events };
+    }
+    
     // Преобразование старого формата списка ID в новый формат Map
     convertLegacySchedule(legacySchedule) {
         const newSchedule = {};
@@ -163,8 +203,11 @@ class ScheduleMiniApp {
                 value.forEach(id => {
                     newSchedule[date][id] = 'full';
                 });
+            } else if (typeof value === 'object' && value.shifts) {
+                // Если это уже новый формат с shifts и event
+                newSchedule[date] = value.shifts;
             } else {
-                // Если это уже объект (новый формат), используем как есть
+                // Если это уже объект (новый формат для смен), используем как есть
                 newSchedule[date] = value;
             }
         }
@@ -178,10 +221,22 @@ class ScheduleMiniApp {
             
             if (savedData) {
                 const parsed = JSON.parse(savedData);
-                this.schedule = this.convertLegacySchedule(parsed);
+                
+                // Поддержка старого и нового формата
+                if (parsed.schedule) {
+                    // Новый формат с мероприятиями
+                    this.schedule = parsed.schedule;
+                    this.events = parsed.events || {};
+                } else {
+                    // Старый формат (только смены)
+                    this.schedule = this.convertLegacySchedule(parsed);
+                    this.events = {};
+                }
             }
         } catch (error) {
             console.error('Ошибка загрузки из localStorage:', error);
+            this.schedule = {};
+            this.events = {};
         }
     }
     
@@ -189,7 +244,11 @@ class ScheduleMiniApp {
         if (this.isReadOnly) return; // Не сохраняем в режиме просмотра
         try {
             const key = `schedule_${this.currentYear}_${this.currentMonth + 1}`;
-            localStorage.setItem(key, JSON.stringify(this.schedule));
+            const dataToSave = {
+                schedule: this.schedule,
+                events: this.events
+            };
+            localStorage.setItem(key, JSON.stringify(dataToSave));
             this.showSaveNotification();
         } catch (error) {
             console.error('Ошибка сохранения в localStorage:', error);
@@ -209,6 +268,7 @@ class ScheduleMiniApp {
             document.getElementById('next-month').addEventListener('click', () => this.changeMonth(1));
             document.getElementById('clear-day').addEventListener('click', () => this.clearCurrentDay());
             document.getElementById('send-all').addEventListener('click', () => this.exportToJson());
+            document.getElementById('add-event').addEventListener('click', () => this.openEventModal());
         }
         
         // Модальные окна
@@ -219,6 +279,23 @@ class ScheduleMiniApp {
         document.getElementById('export-close').addEventListener('click', () => this.hideExportModal());
         document.getElementById('close-export').addEventListener('click', () => this.hideExportModal());
         document.getElementById('copy-json').addEventListener('click', () => this.copyJsonToClipboard());
+        
+        // Обработчики для мероприятий
+        document.getElementById('event-edit').addEventListener('click', () => this.openEventModal());
+        document.getElementById('event-delete').addEventListener('click', () => this.deleteEvent());
+        
+        // Модальное окно мероприятия
+        document.getElementById('event-modal-close').addEventListener('click', () => this.hideEventModal());
+        document.getElementById('event-cancel').addEventListener('click', () => this.hideEventModal());
+        document.getElementById('event-save').addEventListener('click', () => this.saveEvent());
+        document.getElementById('event-description').addEventListener('input', () => this.updateEventCharCount());
+        
+        // Закрытие модального окна по клику на фон
+        document.getElementById('event-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('event-modal')) {
+                this.hideEventModal();
+            }
+        });
     }
     
     hideLoading() {
@@ -236,8 +313,8 @@ class ScheduleMiniApp {
     
     updateStats() {
         const daysWithShifts = Object.keys(this.schedule).length;
-        // Подсчет смен теперь сложнее, так как schedule[date] это объект
         const totalShifts = Object.values(this.schedule).reduce((sum, dateMap) => sum + Object.keys(dateMap).length, 0);
+        const daysWithEvents = Object.keys(this.events).filter(date => this.events[date]).length;
         
         document.getElementById('stats-masters').textContent = this.masters.length;
         document.getElementById('stats-days').textContent = daysWithShifts;
@@ -305,12 +382,14 @@ class ScheduleMiniApp {
             const isToday = isCurrentMonth && day === today.getDate();
             const isWeekend = this.isWeekend(day);
             const isSelected = this.selectedDay === day;
+            const hasEvent = this.events[dateKey] && this.events[dateKey].trim().length > 0;
             
             calendarEl.appendChild(this.createDayElement(day, {
                 isToday,
                 isWeekend,
                 isSelected,
                 hasShift: mastersCount > 0,
+                hasEvent,
                 mastersCount: mastersCount,
                 mastersMap: mastersOnDayMap
             }));
@@ -332,23 +411,27 @@ class ScheduleMiniApp {
         if (options.isWeekend) div.classList.add('day-weekend');
         if (options.isSelected) div.classList.add('day-selected');
         if (options.hasShift) div.classList.add('day-shift');
+        if (options.hasEvent) div.classList.add('day-event');
         
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
         
+        const dayIndicators = document.createElement('div');
+        dayIndicators.className = 'day-indicators';
+        
+        // Индикаторы мастеров
         const mastersIndicators = document.createElement('div');
         mastersIndicators.className = 'day-masters';
         
         const maxIndicators = 3;
         const indicatorsCount = Math.min(options.mastersCount, maxIndicators);
-        const mastersValues = Object.values(options.mastersMap); // ['full', 'evening', ...]
+        const mastersValues = Object.values(options.mastersMap);
         
         for (let i = 0; i < indicatorsCount; i++) {
             const dot = document.createElement('div');
             dot.className = 'master-dot';
             
-            // Если смена вечерняя - добавляем класс
             if (mastersValues[i] === 'evening') {
                 dot.classList.add('evening');
             }
@@ -369,10 +452,26 @@ class ScheduleMiniApp {
             mastersIndicators.appendChild(more);
         }
         
+        // Индикатор мероприятия
+        if (options.hasEvent) {
+            const eventIndicator = document.createElement('div');
+            eventIndicator.className = 'event-indicator';
+            eventIndicator.innerHTML = '<i class="fas fa-calendar-star"></i>';
+            eventIndicator.title = 'Есть мероприятие';
+            eventIndicator.style.cssText = `
+                font-size: 10px;
+                color: var(--info-color);
+                margin-top: 2px;
+            `;
+            dayIndicators.appendChild(eventIndicator);
+        }
+        
+        dayIndicators.appendChild(mastersIndicators);
+        
         div.appendChild(dayNumber);
         
-        if (options.mastersCount > 0) {
-            div.appendChild(mastersIndicators);
+        if (options.mastersCount > 0 || options.hasEvent) {
+            div.appendChild(dayIndicators);
         }
         
         div.addEventListener('click', () => this.selectDay(day));
@@ -390,10 +489,8 @@ class ScheduleMiniApp {
         this.selectedDay = day;
         
         const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        // Получаем Map {id: type}
         const mastersOnDayMap = this.schedule[dateKey] || {};
         
-        // Преобразуем в Map для удобства работы
         this.selectedMasters = new Map();
         for (const [id, type] of Object.entries(mastersOnDayMap)) {
             this.selectedMasters.set(parseInt(id), type);
@@ -403,6 +500,12 @@ class ScheduleMiniApp {
         this.updateDayInfo();
         this.renderMastersList();
         this.updateStats();
+        
+        // Получаем мероприятие для этого дня
+        const eventForDay = this.events[dateKey] || null;
+        
+        // Обновляем отображение мероприятия
+        this.updateEventDisplay(dateKey, eventForDay);
         
         if (window.innerWidth < 768) {
             setTimeout(() => {
@@ -468,6 +571,123 @@ class ScheduleMiniApp {
         }
     }
     
+    // Методы для работы с мероприятиями
+    updateEventDisplay(dateKey, eventDescription) {
+        const eventContainer = document.getElementById('event-container');
+        const eventDisplay = document.getElementById('event-display');
+        const eventEditBtn = document.getElementById('event-edit');
+        const eventDeleteBtn = document.getElementById('event-delete');
+        
+        if (eventDescription && eventDescription.trim().length > 0) {
+            eventDisplay.textContent = eventDescription;
+            eventContainer.style.display = 'block';
+            eventEditBtn.innerHTML = '<i class="fas fa-edit"></i> Изменить';
+            eventDeleteBtn.style.display = 'block';
+        } else {
+            eventContainer.style.display = 'none';
+        }
+    }
+    
+    openEventModal() {
+        if (!this.selectedDay) {
+            this.showNotification('Сначала выберите день из календаря', 'error');
+            return;
+        }
+        
+        const date = new Date(this.currentYear, this.currentMonth, this.selectedDay);
+        const dateStr = date.toLocaleDateString('ru-RU', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'long' 
+        });
+        
+        document.getElementById('event-date-title').textContent = dateStr;
+        
+        // Загружаем существующее мероприятие
+        const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
+        const existingEvent = this.events[dateKey] || '';
+        document.getElementById('event-description').value = existingEvent;
+        
+        // Обновляем счетчик символов
+        this.updateEventCharCount();
+        
+        // Показываем модальное окно
+        document.getElementById('event-modal').style.display = 'flex';
+        
+        // Фокусируемся на текстовом поле
+        setTimeout(() => {
+            document.getElementById('event-description').focus();
+        }, 100);
+    }
+    
+    updateEventCharCount() {
+        const textarea = document.getElementById('event-description');
+        const charCount = document.getElementById('event-char-count');
+        const length = textarea.value.length;
+        charCount.textContent = `${length}/500`;
+        
+        if (length > 500) {
+            charCount.style.color = 'var(--danger-color)';
+        } else {
+            charCount.style.color = 'var(--text-tertiary)';
+        }
+    }
+    
+    saveEvent() {
+        if (!this.selectedDay) return;
+        
+        const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
+        const eventDescription = document.getElementById('event-description').value.trim();
+        
+        if (eventDescription.length > 500) {
+            this.showNotification('Описание слишком длинное (макс. 500 символов)', 'error');
+            return;
+        }
+        
+        if (eventDescription) {
+            this.events[dateKey] = eventDescription;
+            this.showNotification('Мероприятие сохранено', 'success');
+        } else {
+            // Если описание пустое - удаляем мероприятие
+            delete this.events[dateKey];
+            this.showNotification('Мероприятие удалено', 'info');
+        }
+        
+        // Обновляем отображение
+        this.updateEventDisplay(dateKey, eventDescription || null);
+        
+        // Обновляем календарь (чтобы показать/скрыть иконку мероприятия)
+        this.renderCalendar();
+        
+        // Закрываем модальное окно
+        this.hideEventModal();
+        
+        // Сохраняем в localStorage
+        this.saveToLocalStorage();
+    }
+    
+    deleteEvent() {
+        if (!this.selectedDay) return;
+        
+        this.showConfirmModal(
+            'Удалить мероприятие на выбранный день?',
+            () => {
+                const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(this.selectedDay).padStart(2, '0')}`;
+                delete this.events[dateKey];
+                
+                this.updateEventDisplay(dateKey, null);
+                this.renderCalendar();
+                this.showNotification('Мероприятие удалено', 'success');
+                this.saveToLocalStorage();
+            }
+        );
+    }
+    
+    hideEventModal() {
+        document.getElementById('event-modal').style.display = 'none';
+        document.getElementById('event-description').value = '';
+    }
+    
     renderMastersList() {
         const mastersListEl = document.getElementById('masters-list');
         mastersListEl.innerHTML = '';
@@ -489,7 +709,7 @@ class ScheduleMiniApp {
         });
         
         mastersWithStats.forEach(master => {
-            const shiftType = this.selectedMasters.get(master.id); // undefined, 'full', 'evening'
+            const shiftType = this.selectedMasters.get(master.id);
             const masterEl = this.createMasterElement(master, shiftType);
             mastersListEl.appendChild(masterEl);
         });
@@ -586,7 +806,6 @@ class ScheduleMiniApp {
     
     getMasterShiftCount(masterId) {
         let count = 0;
-        // Перебор объекта schedule
         Object.values(this.schedule).forEach(mastersMap => {
             if (mastersMap[masterId]) {
                 count++;
@@ -667,16 +886,42 @@ class ScheduleMiniApp {
     }
     
     exportToJson() {
-        if (Object.keys(this.schedule).length === 0) {
+        if (Object.keys(this.schedule).length === 0 && Object.keys(this.events).length === 0) {
             this.showNotification('Нет данных для экспорта', 'error');
             return;
+        }
+        
+        // Формируем данные в новом формате
+        const scheduleData = {};
+        
+        // Объединяем смены и мероприятия
+        const allDates = new Set([
+            ...Object.keys(this.schedule),
+            ...Object.keys(this.events)
+        ]);
+        
+        for (const dateKey of allDates) {
+            scheduleData[dateKey] = {
+                shifts: this.schedule[dateKey] || {},
+                event: this.events[dateKey] || null
+            };
+            
+            // Если нет смен, оставляем пустой объект
+            if (Object.keys(scheduleData[dateKey].shifts).length === 0) {
+                scheduleData[dateKey].shifts = {};
+            }
+            
+            // Если нет мероприятия, устанавливаем null
+            if (!scheduleData[dateKey].event) {
+                scheduleData[dateKey].event = null;
+            }
         }
         
         const dataToExport = {
             month: this.currentMonth + 1,
             year: this.currentYear,
             chat_id: this.chatId, 
-            schedule: this.schedule
+            schedule: scheduleData
         };
         
         const jsonStr = JSON.stringify(dataToExport, null, 2);

@@ -371,6 +371,15 @@
             color: var(--success-color);
         }
         
+        /* Новый класс для дней с мероприятиями */
+        .day-event {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.1) 100%);
+        }
+        
+        .day-event .day-number {
+            color: var(--info-color);
+        }
+        
         .day-empty {
             background: transparent;
             border: none;
@@ -383,11 +392,17 @@
             border-color: transparent;
         }
         
+        .day-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: center;
+        }
+        
         .day-masters {
             display: flex;
             flex-wrap: wrap;
             gap: 3px;
-            margin-top: 4px;
             justify-content: center;
         }
         
@@ -454,6 +469,33 @@
         .btn-success:hover {
             transform: translateY(-1px);
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #60a5fa 100%);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #f87171 100%);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            min-height: 36px;
+            flex: 1;
         }
         
         .day-info {
@@ -524,6 +566,47 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-left: auto;
+        }
+        
+        /* Блок мероприятия */
+        .event-container {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .event-container h4 {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .event-display {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.1) 100%);
+            border: 1px solid var(--info-color);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin: 10px 0;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+        }
+        
+        .event-display:before {
+            content: "📌";
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .event-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
         }
         
         .empty-state {
@@ -823,6 +906,48 @@
             margin-bottom: 15px;
         }
         
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .char-count {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            text-align: right;
+            margin-top: 4px;
+        }
+        
         textarea#export-json {
             width: 100%;
             min-height: 200px;
@@ -1063,6 +1188,9 @@
 
                     <!-- Панель управления календарем -->
                     <div id="calendar-controls" class="calendar-controls">
+                        <button id="add-event" class="btn btn-info">
+                            <i class="fas fa-calendar-plus"></i> Добавить мероприятие
+                        </button>
                         <button id="clear-day" class="btn btn-secondary">
                             <i class="fas fa-trash-alt"></i> Очистить день
                         </button>
@@ -1078,6 +1206,20 @@
                             <h4>Назначенные мастера:</h4>
                             <div id="assigned-list" class="assigned-list">
                                 <p class="empty-state">Выберите день и мастеров</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Блок мероприятия -->
+                        <div id="event-container" class="event-container" style="display: none;">
+                            <h4><i class="fas fa-calendar-star"></i> Мероприятие:</h4>
+                            <div id="event-display" class="event-display"></div>
+                            <div class="event-controls">
+                                <button id="event-edit" class="btn btn-secondary btn-small">
+                                    <i class="fas fa-edit"></i> Изменить
+                                </button>
+                                <button id="event-delete" class="btn btn-danger btn-small">
+                                    <i class="fas fa-trash-alt"></i> Удалить
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1146,6 +1288,32 @@
                 <div class="modal-footer">
                     <button id="confirm-cancel" class="btn btn-secondary">Отмена</button>
                     <button id="confirm-ok" class="btn btn-primary">Подтвердить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно мероприятия -->
+        <div id="event-modal" class="modal-overlay" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-calendar-plus"></i> Мероприятие на <span id="event-date-title"></span></h3>
+                    <button class="modal-close" id="event-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="event-description">Описание мероприятия:</label>
+                        <textarea id="event-description" rows="3" 
+                                  placeholder="Например: Собрание в 14:00" 
+                                  maxlength="500"></textarea>
+                        <div class="hint">Максимум 500 символов. Одно мероприятие на день.</div>
+                        <div id="event-char-count" class="char-count">0/500</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="event-cancel" class="btn btn-secondary">Отмена</button>
+                    <button id="event-save" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
                 </div>
             </div>
         </div>
